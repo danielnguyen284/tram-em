@@ -13,6 +13,11 @@
   flex-direction: column;
 }
 
+.mobileHeader,
+.backdrop {
+  display: none;
+}
+
 .logo {
   display: flex;
   align-items: center;
@@ -100,32 +105,80 @@
 }
 
 @media (max-width: 768px) {
+  .backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    display: block;
+    pointer-events: none;
+    border: 0;
+    background: rgba(19, 11, 30, 0);
+    opacity: 0;
+    transition: opacity 0.2s ease, background-color 0.2s ease;
+  }
+
+  .backdropOpen {
+    pointer-events: auto;
+    background: rgba(19, 11, 30, 0.38);
+    opacity: 1;
+  }
+
   .sidebar {
-    width: 100%;
-    height: 60px;
-    bottom: 0;
-    top: auto;
+    width: min(82vw, 312px);
+    height: 100vh;
+    top: 0;
+    bottom: auto;
     left: 0;
-    padding: 0;
-    border-right: none;
-    border-top: 1px solid var(--color-border);
-    display: flex;
-    justify-content: center;
+    padding: var(--space-md);
+    border-right: 1px solid var(--color-border);
+    border-top: none;
+    box-shadow: 18px 0 42px rgba(61, 45, 80, 0.18);
+    transform: translateX(-105%);
+    transition: transform 0.25s ease, background-color 0.3s ease;
+    z-index: 50;
+  }
+
+  .mobileOpen {
+    transform: translateX(0);
+  }
+
+  .mobileHeader {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) 36px;
     align-items: center;
+    gap: 10px;
+    padding-bottom: var(--space-md);
+    margin-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+    color: var(--color-primary);
+    font-size: var(--text-body);
+    font-weight: 900;
+  }
+
+  .mobileHeader button {
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: var(--color-text-muted);
   }
 
   .nav {
-    flex-direction: row;
-    width: 100%;
-    justify-content: space-around;
-    padding: 0 var(--space-sm);
+    flex-direction: column;
+    width: auto;
+    justify-content: flex-start;
+    padding: 0;
+    gap: 8px;
   }
 
   .navItem {
-    flex-direction: column;
-    gap: 4px;
-    padding: 4px;
-    font-size: var(--text-tiny);
+    flex-direction: row;
+    gap: 12px;
+    min-height: 48px;
+    padding: 10px 14px;
+    font-size: var(--text-small);
   }
 
   .navItem span {
@@ -133,6 +186,6 @@
   }
 
   .promoWidget {
-    display: none;
+    display: block;
   }
 }

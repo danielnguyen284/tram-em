@@ -42,6 +42,10 @@
   gap: var(--space-md);
 }
 
+.cartWrapper {
+  position: relative;
+}
+
 .iconBtn {
   width: 40px;
   height: 40px;
@@ -52,6 +56,11 @@
   color: var(--color-text-secondary);
   transition: all 0.3s ease;
   position: relative;
+}
+
+.menuButton,
+.mobileCart {
+  display: none;
 }
 
 .iconBtn:hover {
@@ -70,7 +79,30 @@
   border: 2px solid var(--color-bg-card);
 }
 
+.cartBadge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 19px;
+  height: 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+  border: 2px solid var(--color-bg-card);
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 [data-theme='dark'] .badge {
+  border-color: var(--color-bg-page);
+}
+
+[data-theme='dark'] .cartBadge {
   border-color: var(--color-bg-page);
 }
 
@@ -125,15 +157,71 @@
 
 @media (max-width: 768px) {
   .header {
-    padding: 0 var(--space-md);
+    height: 58px;
+    padding: 0 10px;
+    gap: 6px;
+    justify-content: flex-start;
   }
+
+  .menuButton,
+  .mobileCart {
+    display: flex;
+  }
+
   .brandText {
-    font-size: 18px;
+    font-size: 16px;
   }
+
+  .brand > span:first-child {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .brand svg {
+    width: 38px;
+    height: 38px;
+  }
+
   .actions {
-    gap: var(--space-xs);
+    gap: 2px;
+    margin-left: auto;
   }
+
+  .iconBtn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .desktopCart {
+    display: none;
+  }
+
+  .profile {
+    width: 36px;
+    height: 36px;
+    justify-content: center;
+    padding: 0;
+  }
+
   .userName {
+    display: none;
+  }
+
+  .loginLink {
+    min-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 380px) {
+  .brandText {
     display: none;
   }
 }

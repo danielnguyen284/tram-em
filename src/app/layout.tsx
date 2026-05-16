@@ -12,12 +12,20 @@ const nunito = Nunito({
 export const metadata: Metadata = {
   title: "Trạm Êm — Ốc Đảo Chữa Lành Tâm Hồn",
   description: "Nơi cảm xúc được lắng nghe, thấu hiểu và chữa lành mỗi ngày qua âm thanh thiên nhiên, thiền định và cộng đồng tích cực.",
-  manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Trạm Êm",
   },
+  icons: {
+    icon: [
+      { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png' }
+    ]
+  }
 };
 
 export const viewport: Viewport = {

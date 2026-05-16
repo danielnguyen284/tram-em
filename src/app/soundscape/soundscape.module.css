@@ -26,6 +26,12 @@
   flex-wrap: wrap;
   gap: 12px;
   margin-bottom: var(--space-xl);
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.filters::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
 }
 
 .filterButton {

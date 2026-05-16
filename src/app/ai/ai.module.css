@@ -216,6 +216,19 @@
   font-size: var(--text-small);
 }
 
+.mobileHistoryButton {
+  width: 38px;
+  height: 38px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  margin-left: auto;
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
 .messages {
   height: 300px;
   display: flex;
@@ -277,6 +290,20 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.historyActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.closeHistoryButton {
+  display: none;
+}
+
+.historyBackdrop {
+  display: none;
 }
 
 .historyHeader p {
@@ -519,6 +546,15 @@
     padding: 18px;
   }
 
+  .modeCard {
+    width: 100%;
+    max-width: none;
+  }
+
+  .mobileHistoryButton {
+    display: inline-flex;
+  }
+
   .botStage {
     min-height: 220px;
   }
@@ -539,6 +575,55 @@
   .topicList,
   .threadList {
     grid-template-columns: 1fr;
+  }
+
+  .historyBackdrop {
+    position: fixed;
+    inset: 58px 0 92px;
+    z-index: 54;
+    display: block;
+    border-radius: 0;
+    background: rgba(15, 9, 23, 0.48);
+    backdrop-filter: blur(3px);
+  }
+
+  .historyPanel {
+    position: fixed;
+    top: 72px;
+    right: 14px;
+    bottom: 104px;
+    left: 14px;
+    z-index: 55;
+    gap: 14px;
+    overflow-y: auto;
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+    background: var(--color-bg-page);
+    box-shadow: 0 22px 60px rgba(15, 9, 23, 0.32);
+    padding: 16px;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(18px);
+    visibility: hidden;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+  }
+
+  .historyOpen {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+    visibility: visible;
+  }
+
+  .closeHistoryButton {
+    display: inline-flex;
+    background: var(--color-primary-soft);
+    color: var(--color-primary);
+  }
+
+  .threadList {
+    max-height: none;
+    overflow: visible;
   }
 }
 

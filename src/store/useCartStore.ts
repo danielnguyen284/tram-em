@@ -11,6 +11,7 @@ export type CartItem = {
   price: number;
   image: string;
   quantity: number;
+  stock: number;
 };
 
 type CartState = {
@@ -50,6 +51,7 @@ export const useCartStore = create<CartState>()(
                 price: product.price,
                 image: product.images[0],
                 quantity: Math.min(quantity, product.stock),
+                stock: product.stock,
               },
             ],
           };
@@ -63,7 +65,11 @@ export const useCartStore = create<CartState>()(
       updateQuantity: (id, quantity) =>
         set((state) => ({
           items: state.items
-            .map((item) => (item.id === id ? { ...item, quantity: Math.max(1, quantity) } : item))
+            .map((item) =>
+              item.id === id
+                ? { ...item, quantity: Math.min(Math.max(1, quantity), item.stock ?? 99) }
+                : item,
+            )
             .filter((item) => item.quantity > 0),
         })),
 

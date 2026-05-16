@@ -303,10 +303,10 @@
     grid-template-columns: 1fr;
   }
   .featuresSection {
-    padding: 0;
+    padding: var(--space-lg) var(--space-md);
   }
   .suggestionsSection {
-    padding: 0;
+    padding: 0 var(--space-md);
   }
   .featuresSectionWrapper {
     margin-top: -64px;
