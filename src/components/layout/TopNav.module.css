@@ -1,0 +1,139 @@
+.header {
+  height: 64px;
+  width: 100%;
+  padding: 0 var(--space-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--color-border);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 40;
+  transition: background-color 0.3s ease;
+}
+
+[data-theme='dark'] .header {
+  background-color: rgba(19, 11, 30, 0.9);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  color: var(--color-primary);
+}
+
+.brandText {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.iconBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--color-text-secondary);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.iconBtn:hover {
+  background-color: var(--color-primary-bg);
+  color: var(--color-text-primary);
+}
+
+.badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  background-color: var(--color-accent-pink);
+  border-radius: 50%;
+  border: 2px solid var(--color-bg-card);
+}
+
+[data-theme='dark'] .badge {
+  border-color: var(--color-bg-page);
+}
+
+.profileWrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 4px 12px;
+  background-color: var(--color-primary-bg);
+  border-radius: 20px;
+  color: var(--color-text-primary);
+  font-weight: 500;
+  font-size: var(--text-small);
+}
+
+.logoutBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--color-text-muted);
+  transition: all 0.3s ease;
+  border-radius: 50%;
+}
+
+.logoutBtn:hover {
+  background-color: var(--color-accent-pink);
+  color: white;
+}
+
+.loginLink {
+  padding: 8px 16px;
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+  border-radius: 12px;
+  font-size: var(--text-small);
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.loginLink:hover {
+  background-color: var(--color-primary-light);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0 var(--space-md);
+  }
+  .brandText {
+    font-size: 18px;
+  }
+  .actions {
+    gap: var(--space-xs);
+  }
+  .userName {
+    display: none;
+  }
+}

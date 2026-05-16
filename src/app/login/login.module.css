@@ -1,0 +1,119 @@
+.container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--color-bg-page);
+  padding: var(--space-md);
+  background-image: radial-gradient(var(--color-primary-soft) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  background-color: var(--color-bg-card);
+  padding: var(--space-2xl);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 50px rgba(139, 106, 173, 0.1);
+  border: 1px solid var(--color-border);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.logo {
+  font-size: 48px;
+  margin-bottom: var(--space-sm);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.submitBtn {
+  width: 100%;
+  margin-top: var(--space-sm);
+}
+
+.message {
+  padding: 10px;
+  background-color: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-radius: 8px;
+  font-size: var(--text-small);
+  text-align: center;
+}
+
+.footer {
+  margin-top: var(--space-xl);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.toggleBtn {
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-left: var(--space-xs);
+}
+
+.toggleBtn:hover {
+  text-decoration: underline;
+}
+
+.backLink {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+}
+
+.backLink:hover {
+  color: var(--color-primary);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: var(--text-tiny);
+  margin: var(--space-sm) 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.divider span {
+  padding: 0 10px;
+}
+
+.googleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: 12px;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  font-size: var(--text-small);
+  color: var(--color-text-primary);
+  transition: all 0.3s ease;
+}
+
+.googleBtn:hover {
+  background-color: var(--color-bg-page);
+  border-color: var(--color-primary-light);
+  transform: translateY(-1px);
+}

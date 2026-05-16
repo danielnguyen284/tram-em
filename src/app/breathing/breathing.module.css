@@ -1,0 +1,135 @@
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2xl);
+  padding-bottom: 100px;
+}
+
+.header {
+  text-align: center;
+}
+
+.visualizerArea {
+  height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.circleContainer {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 300px;
+  height: 300px;
+}
+
+.mainCircle {
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle at 30% 30%, var(--color-primary-light), var(--color-primary));
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 10px 40px rgba(139, 106, 173, 0.4);
+  z-index: 2;
+  color: white;
+  font-size: 48px;
+  font-weight: 700;
+}
+
+.glow {
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  background-color: var(--color-primary-soft);
+  border-radius: 50%;
+  filter: blur(40px);
+  z-index: 1;
+}
+
+.phaseLabel {
+  position: absolute;
+  bottom: -60px;
+  width: 100%;
+  text-align: center;
+}
+
+.statusText {
+  font-size: var(--text-h2);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.controls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xl);
+}
+
+.techTabs {
+  display: flex;
+  gap: var(--space-sm);
+  background-color: var(--color-bg-sidebar);
+  padding: 6px;
+  border-radius: 16px;
+}
+
+.tab {
+  padding: 8px 16px;
+  border-radius: 12px;
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  transition: all 0.3s ease;
+}
+
+.activeTab {
+  background-color: white;
+  color: var(--color-primary);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='dark'] .activeTab {
+  background-color: var(--color-bg-card);
+}
+
+.actionBtns {
+  display: flex;
+  gap: var(--space-md);
+}
+
+.mainBtn {
+  min-width: 180px;
+}
+
+.description {
+  max-width: 400px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .visualizerArea {
+    height: 300px;
+  }
+  .circleContainer {
+    width: 200px;
+    height: 200px;
+  }
+  .mainCircle {
+    width: 120px;
+    height: 120px;
+    font-size: 32px;
+  }
+}
