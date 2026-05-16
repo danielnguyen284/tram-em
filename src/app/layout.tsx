@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
+import WelcomeScreens from "@/components/ui/WelcomeScreens";
 
 const nunito = Nunito({
   subsets: ["latin", "vietnamese"],
@@ -34,6 +35,7 @@ export default function RootLayout({
   return (
     <html lang="vi" data-scroll-behavior="smooth">
       <body className={nunito.variable}>
+        <WelcomeScreens />
         {children}
       </body>
     </html>

@@ -1,135 +1,370 @@
 .container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
+  padding: var(--space-lg) var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  min-height: calc(100vh - 160px);
+}
+
+/* --- Header --- */
+.header {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2xl);
-  padding-bottom: 100px;
-}
-
-.header {
   text-align: center;
+  gap: var(--space-xs);
 }
 
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary);
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-tiny);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: 42px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--color-text-secondary);
+  font-size: var(--text-body);
+  max-width: 600px;
+}
+
+/* --- Main Content Layout --- */
+.mainLayout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+/* --- Left Sidebar --- */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.techniqueList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.techCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  color: var(--color-text-secondary);
+  width: 100%;
+}
+
+.techCard:hover {
+  background-color: var(--color-primary-soft);
+  color: var(--color-text-primary);
+  transform: translateX(4px);
+}
+
+.activeTechCard {
+  background-color: var(--color-primary-soft) !important;
+  color: var(--color-text-primary) !important;
+  font-weight: 600;
+}
+
+[data-theme='dark'] .activeTechCard {
+  background-color: var(--color-primary-soft) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.techIcon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: transparent;
+  border-radius: 12px;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.activeTechCard .techIcon {
+  color: var(--color-primary);
+}
+
+.techInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.techInfo h4 {
+  font-size: var(--text-body);
+  font-weight: 600;
+  margin-bottom: 2px;
+  color: inherit;
+}
+
+.techInfo p {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.3;
+}
+
+.activeTechCard .techInfo p {
+  color: var(--color-text-secondary);
+}
+
+/* --- Cycle Selector --- */
+.selectorGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background-color: var(--color-bg-sidebar);
+  border-radius: 24px;
+}
+
+.selectorLabel {
+  font-size: var(--text-tiny);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.selectorGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.optionBtn {
+  padding: 8px;
+  border-radius: 12px;
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  transition: all 0.2s ease;
+}
+
+.optionBtn:hover {
+  background-color: var(--color-bg-card);
+}
+
+.activeOption {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+/* --- Visualizer Area --- */
 .visualizerArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 40px;
+  padding-top: 0;
+}
+
+.circleWrapper {
+  position: relative;
+  width: 400px;
   height: 400px;
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
-  position: relative;
 }
 
-.circleContainer {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 300px;
-  height: 300px;
+.outerRing {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 2px solid var(--color-primary-light);
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+.middleRing {
+  position: absolute;
+  width: 80%;
+  height: 80%;
+  border: 2px solid var(--color-primary-light);
+  border-radius: 50%;
+  opacity: 0.6;
 }
 
 .mainCircle {
-  width: 180px;
-  height: 180px;
-  background: radial-gradient(circle at 30% 30%, var(--color-primary-light), var(--color-primary));
+  width: 60%;
+  height: 60%;
+  background-color: var(--color-primary-light);
   border-radius: 50%;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  box-shadow: 0 10px 40px rgba(139, 106, 173, 0.4);
-  z-index: 2;
   color: white;
-  font-size: 48px;
-  font-weight: 700;
+  z-index: 2;
+  box-shadow: 0 20px 60px rgba(139, 106, 173, 0.2);
+  position: relative;
 }
 
-.glow {
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  background-color: var(--color-primary-soft);
-  border-radius: 50%;
-  filter: blur(40px);
-  z-index: 1;
-}
-
-.phaseLabel {
-  position: absolute;
-  bottom: -60px;
-  width: 100%;
-  text-align: center;
+[data-theme='dark'] .mainCircle {
+  box-shadow: 0 0 40px rgba(171, 147, 205, 0.2);
 }
 
 .statusText {
-  font-size: var(--text-h2);
-  font-weight: 600;
-  color: var(--color-primary);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text-primary);
 }
 
-.controls {
+.statusLabel {
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  right: 0;
   width: 100%;
+  text-align: center;
+}
+
+.timerText {
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--color-primary-bg); /* Use the page/card background color for contrast on the light circle */
+  filter: brightness(0.6); /* Slightly darken it to ensure it stands out in both modes */
+}
+
+[data-theme='dark'] .timerText {
+  color: var(--color-bg-page);
+  filter: none;
+}
+
+/* --- Instruction --- */
+.instruction {
+  font-style: italic;
+  color: var(--color-text-secondary);
+  font-size: var(--text-body);
+  opacity: 0.8;
+}
+
+/* --- Main Actions --- */
+.actionArea {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-xl);
+  gap: 32px;
+  width: 100%;
 }
 
-.techTabs {
+.startBtn {
+  background-color: var(--color-primary);
+  color: white;
+  padding: 16px 48px;
+  border-radius: var(--radius-full);
+  font-size: 18px;
+  font-weight: 700;
   display: flex;
-  gap: var(--space-sm);
-  background-color: var(--color-bg-sidebar);
-  padding: 6px;
-  border-radius: 16px;
-}
-
-.tab {
-  padding: 8px 16px;
-  border-radius: 12px;
-  font-size: var(--text-small);
-  font-weight: 600;
-  color: var(--color-text-secondary);
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 25px rgba(171, 147, 205, 0.4);
   transition: all 0.3s ease;
 }
 
-.activeTab {
-  background-color: white;
-  color: var(--color-primary);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+[data-theme='dark'] .startBtn {
+  color: #130B1E; /* Dark text on light button for high contrast */
+  box-shadow: 0 0 30px rgba(171, 147, 205, 0.3);
 }
 
-[data-theme='dark'] .activeTab {
-  background-color: var(--color-bg-card);
+.startBtn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 15px 35px rgba(171, 147, 205, 0.5);
 }
 
-.actionBtns {
+.stopBtn {
+  background-color: transparent !important;
+  color: var(--color-text-primary) !important;
+  border: 2px solid var(--color-primary) !important;
+  box-shadow: none !important;
+}
+
+[data-theme='dark'] .stopBtn {
+  color: var(--color-text-primary) !important;
+  border-color: var(--color-primary) !important;
+}
+
+.stopBtn:hover {
+  background-color: var(--color-primary-soft) !important;
+  transform: translateY(-2px);
+}
+
+/* --- Phase Info --- */
+.phaseInfo {
   display: flex;
-  gap: var(--space-md);
+  gap: 12px;
+  margin-top: 24px;
 }
 
-.mainBtn {
-  min-width: 180px;
+.phaseTag {
+  background-color: var(--color-bg-sidebar);
+  padding: 8px 16px;
+  border-radius: 16px;
+  font-size: var(--text-small);
+  color: var(--color-text-secondary);
 }
 
-.description {
-  max-width: 400px;
-  text-align: center;
-  color: var(--color-text-muted);
-  font-style: italic;
+.phaseTag span {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.activePhaseTag {
+  background-color: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+/* --- Responsive --- */
+@media (max-width: 1024px) {
+  .mainLayout {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+  .sidebar {
+    order: 2;
+  }
+  .visualizerArea {
+    order: 1;
+  }
 }
 
 @media (max-width: 768px) {
-  .visualizerArea {
-    height: 300px;
-  }
-  .circleContainer {
-    width: 200px;
-    height: 200px;
-  }
-  .mainCircle {
-    width: 120px;
-    height: 120px;
+  .title {
     font-size: 32px;
+  }
+  .circleWrapper {
+    width: 300px;
+    height: 300px;
   }
 }

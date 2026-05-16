@@ -1,7 +1,8 @@
 'use client';
 
 import Shell from '@/components/layout/Shell';
-import { Play, Music, Gamepad2, PenTool, Users, Bot, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { Play, Music, Gamepad2, Wind, Users, Bot, ChevronRight } from 'lucide-react';
 import styles from './page.module.css';
 
 export default function Home() {
@@ -28,31 +29,31 @@ export default function Home() {
           <div className={styles.featuresSection}>
             <h3 className={styles.sectionTitle}>Hôm nay bạn muốn làm gì?</h3>
             <div className={styles.featuresGrid}>
-              <div className={styles.featureCard}>
+              <Link href="/soundscape" className={styles.featureCard}>
                 <div className={styles.featureIcon}><Music size={24} /></div>
                 <h4>Nghe nhạc thư giãn</h4>
                 <p>ASMR, nhạc chữa lành, âm thanh thiên nhiên</p>
-              </div>
-              <div className={styles.featureCard}>
+              </Link>
+              <Link href="/games" className={styles.featureCard}>
                 <div className={styles.featureIcon}><Gamepad2 size={24} /></div>
                 <h4>Chơi game giải trí</h4>
                 <p>Những trò chơi nhỏ giúp bạn thư giãn</p>
-              </div>
-              <div className={styles.featureCard}>
-                <div className={styles.featureIcon}><PenTool size={24} /></div>
-                <h4>Viết cảm xúc</h4>
-                <p>Để lại mọi muộn phiền và lo âu lại phía sau</p>
-              </div>
-              <div className={styles.featureCard}>
+              </Link>
+              <Link href="/breathing" className={styles.featureCard}>
+                <div className={styles.featureIcon}><Wind size={24} /></div>
+                <h4>Kiểm soát nhịp thở</h4>
+                <p>Điều hòa hơi thở, tìm lại sự bình yên</p>
+              </Link>
+              <Link href="/community" className={styles.featureCard}>
                 <div className={styles.featureIcon}><Users size={24} /></div>
                 <h4>Cộng đồng tích cực</h4>
                 <p>Cùng chia sẻ, sắc màu yêu thương</p>
-              </div>
-              <div className={styles.featureCard}>
+              </Link>
+              <Link href="/ai" className={styles.featureCard}>
                 <div className={styles.featureIcon}><Bot size={24} /></div>
                 <h4>AI đồng hành</h4>
                 <p>Trò chuyện cùng Omni, lắng nghe thấu hiểu</p>
-              </div>
+              </Link>
             </div>
           </div>
         </div>
