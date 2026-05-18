@@ -22,8 +22,10 @@ export default function WelcomeScreens() {
   const [popupContent, setPopupContent] = useState(POPUP_MESSAGES[0]);
 
   useEffect(() => {
-    setMounted(true);
-    setSplashVisible(true);
+    queueMicrotask(() => {
+      setMounted(true);
+      setSplashVisible(true);
+    });
 
     // Ring animation takes 1.5s, then hold briefly before lifting
     const hideTimer = setTimeout(() => {

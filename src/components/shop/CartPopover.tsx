@@ -1,6 +1,6 @@
 'use client';
 
-import { formatVnd } from '@/data/shop';
+import { formatVnd } from '@/utils/format';
 import { useCartStore } from '@/store/useCartStore';
 import { Minus, Plus, ShoppingBag, Trash2, X } from 'lucide-react';
 import Image from 'next/image';
@@ -87,9 +87,9 @@ export default function CartPopover({ onClose }: { onClose: () => void }) {
               <span>Tổng tạm tính</span>
               <strong>{formatVnd(total)}</strong>
             </div>
-            <button type="button" className={styles.checkoutButton}>
+            <Link href="/checkout" className={styles.checkoutButton} onClick={onClose}>
               Thanh toán
-            </button>
+            </Link>
             <button type="button" className={styles.clearButton} onClick={clearCart}>
               Xóa giỏ hàng
             </button>

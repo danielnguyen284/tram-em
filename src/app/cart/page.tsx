@@ -1,7 +1,7 @@
 'use client';
 
 import Shell from '@/components/layout/Shell';
-import { formatVnd } from '@/data/shop';
+import { formatVnd } from '@/utils/format';
 import { useCartStore } from '@/store/useCartStore';
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import Image from 'next/image';
@@ -100,9 +100,9 @@ export default function CartPage() {
                 <span>Tạm tính</span>
                 <strong>{formatVnd(total)}</strong>
               </div>
-              <button type="button" className={styles.checkoutButton}>
+              <Link href="/checkout" className={styles.checkoutButton}>
                 Thanh toán
-              </button>
+              </Link>
               <Link href="/shop" className={styles.continueLink}>
                 Tiếp tục mua sắm
               </Link>

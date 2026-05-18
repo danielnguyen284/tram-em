@@ -16,8 +16,11 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'i.pravatar.cc' },
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'cdn.pixabay.com' },
+      { protocol: 'https', hostname: 'qr.sepay.vn' },
+      { protocol: 'https', hostname: 'i.ibb.co' },
     ],
   },
+  allowedDevOrigins: ['127.0.0.1', '127.0.0.1:3000', 'localhost:3000'],
 };
 
 export default withPWA(nextConfig);

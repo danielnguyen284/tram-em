@@ -12,6 +12,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    "public/sw.js",
+    "public/workbox-*.js",
+    "generate_logos.js",
+    "split_svg.js",
+    "trace.js",
   ]),
 ]);
 

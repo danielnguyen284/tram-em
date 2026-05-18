@@ -5,15 +5,6 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 
 export async function login(formData: FormData) {
-  // BYPASS FOR TESTING ADMIN
-  const email = formData.get('email') as string
-  const password = formData.get('password') as string
-  
-  if (email === 'admin@admin.com' && password === 'admin123') {
-    revalidatePath('/', 'layout')
-    return redirect('/')
-  }
-
   if (process.env.NEXT_PUBLIC_SUPABASE_URL?.includes('placeholder')) {
     return redirect(`/login?message=${encodeURIComponent('Lỗi: Vui lòng cấu hình Supabase URL thật trong file .env')}`)
   }
@@ -25,18 +16,39 @@ export async function login(formData: FormData) {
     password: formData.get('password') as string,
   }
 
+  let loginError = null
+  let user = null
   try {
-    const { error } = await supabase.auth.signInWithPassword(data)
-
-    if (error) {
-      return redirect(`/login?message=${encodeURIComponent('Email hoặc mật khẩu không chính xác')}`)
-    }
-  } catch (err) {
+    const { data: signInData, error } = await supabase.auth.signInWithPassword(data)
+    loginError = error
+    user = signInData?.user
+  } catch {
     return redirect(`/login?message=${encodeURIComponent('Lỗi kết nối server, vui lòng kiểm tra lại cấu hình Supabase')}`)
   }
 
+  if (loginError) {
+    return redirect(`/login?message=${encodeURIComponent('Email hoặc mật khẩu không chính xác')}`)
+  }
+
+  let isAdmin = false
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle()
+
+    const profileRole = profile?.role
+    const metadataRole = user.app_metadata?.role
+    isAdmin = profileRole === 'admin' || metadataRole === 'admin'
+  }
+
   revalidatePath('/', 'layout')
-  redirect('/')
+  if (isAdmin) {
+    redirect('/admin')
+  } else {
+    redirect('/')
+  }
 }
 
 export async function signup(formData: FormData) {
@@ -51,14 +63,22 @@ export async function signup(formData: FormData) {
     password: formData.get('password') as string,
   }
 
+  let signupError = null
   try {
-    const { error } = await supabase.auth.signUp(data)
-
-    if (error) {
-      return redirect(`/login?message=${encodeURIComponent('Email đã tồn tại hoặc thông tin không hợp lệ')}`)
-    }
-  } catch (err) {
+    const appUrl = process.env.APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+    const { error } = await supabase.auth.signUp({
+      ...data,
+      options: {
+        emailRedirectTo: `${appUrl}/auth/callback`,
+      },
+    })
+    signupError = error
+  } catch {
     return redirect(`/login?message=${encodeURIComponent('Lỗi kết nối server, vui lòng kiểm tra lại cấu hình Supabase')}`)
+  }
+
+  if (signupError) {
+    return redirect(`/login?message=${encodeURIComponent('Email đã tồn tại hoặc thông tin không hợp lệ')}`)
   }
 
   revalidatePath('/', 'layout')

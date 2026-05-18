@@ -5,7 +5,19 @@ import CartPopover from '@/components/shop/CartPopover';
 import { useCartStore } from '@/store/useCartStore';
 import { createClient } from '@/utils/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { Bell, LogOut, Menu, Moon, ShoppingCart, Sun, User } from 'lucide-react';
+import {
+  Bell,
+  Camera,
+  ChevronDown,
+  LogOut,
+  Menu,
+  Moon,
+  ShieldCheck,
+  ShoppingCart,
+  Sun,
+  User,
+} from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import LogoMark from './LogoMark';
@@ -15,12 +27,28 @@ type TopNavProps = {
   onMenuClick: () => void;
 };
 
+type ProfileState = {
+  display_name: string | null;
+  avatar_url: string | null;
+};
+
+type Gender = 'male' | 'female';
+
+const DEFAULT_AVATARS: Record<Gender, string> = {
+  male: '/images/avatar-default-male.png',
+  female: '/images/avatar-default-female.png',
+};
+
 export default function TopNav({ onMenuClick }: TopNavProps) {
   const [isDark, setIsDark] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<ProfileState | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const cartRef = useRef<HTMLDivElement | null>(null);
+  const profileRef = useRef<HTMLDivElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
   const cartCount = useCartStore((state) =>
     state.items.reduce((total, item) => total + item.quantity, 0),
@@ -32,7 +60,21 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
         data: { user },
       } = await supabase.auth.getUser();
       setUser(user);
+
+      if (!user) {
+        setProfile(null);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name, avatar_url')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      setProfile((profile as ProfileState | null) ?? null);
     };
+
     getUser();
   }, [supabase]);
 
@@ -57,12 +99,25 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
       if (!cartRef.current?.contains(event.target as Node)) {
         setCartOpen(false);
       }
+
+      if (!profileRef.current?.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setCartOpen(false);
+        setProfileOpen(false);
+      }
     };
 
     document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
 
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
 
@@ -71,6 +126,53 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
     setIsDark(!isDark);
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
+  };
+
+  const gender = user?.user_metadata?.gender === 'female' ? 'female' : 'male';
+  const displayName =
+    profile?.display_name ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Bạn';
+  const avatarSrc = profile?.avatar_url ?? DEFAULT_AVATARS[gender];
+
+  const updateGender = async (nextGender: Gender) => {
+    const { data, error } = await supabase.auth.updateUser({
+      data: { ...user?.user_metadata, gender: nextGender },
+    });
+
+    if (!error && data.user) {
+      setUser(data.user);
+    }
+  };
+
+  const uploadAvatar = async (file: File | null | undefined) => {
+    if (!file) return;
+
+    setAvatarUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const response = await fetch('/api/profile/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = (await response.json()) as { avatarUrl?: string; error?: string };
+
+      if (!response.ok || !data.avatarUrl) {
+        throw new Error(data.error ?? 'Upload avatar thất bại.');
+      }
+
+      setProfile((current) => ({
+        display_name: current?.display_name ?? displayName,
+        avatar_url: data.avatarUrl ?? null,
+      }));
+    } catch (error) {
+      console.error(error);
+      alert(error instanceof Error ? error.message : 'Upload avatar thất bại.');
+    } finally {
+      setAvatarUploading(false);
+    }
   };
 
   return (
@@ -119,14 +221,76 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
         </Link>
 
         {user ? (
-          <div className={styles.profileWrapper}>
-            <div className={styles.profile}>
-              <User size={20} />
-              <span className={styles.userName}>{user.email?.split('@')[0]}</span>
-            </div>
-            <button type="button" onClick={() => signOut()} className={styles.logoutBtn} title="Đăng xuất">
-              <LogOut size={18} />
+          <div className={styles.profileWrapper} ref={profileRef}>
+            <button
+              type="button"
+              className={styles.profile}
+              aria-label="Mở menu tài khoản"
+              aria-expanded={profileOpen}
+              onClick={() => setProfileOpen((open) => !open)}
+            >
+              <span className={styles.avatarFrame}>
+                <Image src={avatarSrc} alt="" fill sizes="28px" className={styles.avatarImg} />
+              </span>
+              <span className={styles.userName}>{displayName}</span>
+              <ChevronDown size={16} className={styles.profileChevron} />
             </button>
+
+            {profileOpen && (
+              <div className={styles.profileMenu}>
+                <div className={styles.profileCard}>
+                  <span className={styles.menuAvatar}>
+                    <Image src={avatarSrc} alt="" fill sizes="46px" className={styles.avatarImg} />
+                  </span>
+                  <div className={styles.profileMeta}>
+                    <strong>{displayName}</strong>
+                    <span>{user.email}</span>
+                  </div>
+                </div>
+
+                <label className={`${styles.menuItem} ${styles.uploadItem}`}>
+                  <Camera size={17} />
+                  <span>{avatarUploading ? 'Đang tải avatar...' : 'Đổi avatar'}</span>
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className={styles.fileInput}
+                    disabled={avatarUploading}
+                    onChange={(event) => uploadAvatar(event.target.files?.[0])}
+                  />
+                </label>
+
+                <div className={styles.genderPicker} aria-label="Avatar mặc định theo giới tính">
+                  <button
+                    type="button"
+                    className={gender === 'male' ? styles.genderActive : ''}
+                    onClick={() => updateGender('male')}
+                  >
+                    Nam
+                  </button>
+                  <button
+                    type="button"
+                    className={gender === 'female' ? styles.genderActive : ''}
+                    onClick={() => updateGender('female')}
+                  >
+                    Nữ
+                  </button>
+                </div>
+
+                <Link href="/profile" className={styles.menuItem} onClick={() => setProfileOpen(false)}>
+                  <User size={17} />
+                  <span>Hồ sơ cá nhân</span>
+                </Link>
+                <Link href="/account/security" className={styles.menuItem} onClick={() => setProfileOpen(false)}>
+                  <ShieldCheck size={17} />
+                  <span>Tài khoản & bảo mật</span>
+                </Link>
+                <button type="button" onClick={() => signOut()} className={`${styles.menuItem} ${styles.logoutBtn}`}>
+                  <LogOut size={17} />
+                  <span>Đăng xuất</span>
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <Link href="/login" className={styles.loginLink}>

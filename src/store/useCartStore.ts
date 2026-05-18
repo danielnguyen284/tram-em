@@ -1,8 +1,19 @@
 'use client';
 
-import type { ShopProduct } from '@/data/shop';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+
+/** Shape accepted by addItem — matches what Shop pages pass in */
+export type CartProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  price: number;
+  images: string[];
+  stock: number;
+  oldPrice?: number;
+  [key: string]: unknown; // allow extra fields without breaking
+};
 
 export type CartItem = {
   id: string;
@@ -16,7 +27,7 @@ export type CartItem = {
 
 type CartState = {
   items: CartItem[];
-  addItem: (product: ShopProduct, quantity?: number) => void;
+  addItem: (product: CartProduct, quantity?: number) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;

@@ -1,6 +1,7 @@
 'use client';
 
-import { formatVnd, type ShopProduct } from '@/data/shop';
+import type { Product } from '@/types/database';
+import { formatVnd } from '@/utils/format';
 import { useCartStore } from '@/store/useCartStore';
 import { ArrowLeft, Minus, Plus, ShieldCheck, ShoppingCart, Star, Truck } from 'lucide-react';
 import Image from 'next/image';
@@ -8,7 +9,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import styles from './product-detail.module.css';
 
-export default function ProductDetailClient({ product }: { product: ShopProduct }) {
+export default function ProductDetailClient({ product }: { product: Product }) {
   const [selectedImage, setSelectedImage] = useState(product.images[0]);
   const [quantity, setQuantity] = useState(1);
   const addItem = useCartStore((state) => state.addItem);
@@ -65,7 +66,7 @@ export default function ProductDetailClient({ product }: { product: ShopProduct 
 
           <div className={styles.priceRow}>
             <strong>{formatVnd(product.price)}</strong>
-            {product.oldPrice && <small>{formatVnd(product.oldPrice)}</small>}
+            {product.old_price && <small>{formatVnd(product.old_price)}</small>}
           </div>
 
           <div className={styles.tags}>
@@ -88,7 +89,24 @@ export default function ProductDetailClient({ product }: { product: ShopProduct 
             <small>Còn {product.stock} sản phẩm</small>
           </div>
 
-          <button type="button" className={styles.addButton} onClick={() => addItem(product, quantity)}>
+          <button
+            type="button"
+            className={styles.addButton}
+            onClick={() => addItem({
+              id: product.id,
+              slug: product.slug,
+              name: product.name,
+              category: product.category,
+              price: product.price,
+              oldPrice: product.old_price ?? undefined,
+              description: product.description,
+              details: product.details,
+              images: product.images,
+              tags: product.tags,
+              stock: product.stock,
+              rating: product.rating,
+            }, quantity)}
+          >
             <ShoppingCart size={20} />
             Thêm vào giỏ hàng
           </button>
@@ -96,7 +114,7 @@ export default function ProductDetailClient({ product }: { product: ShopProduct 
           <div className={styles.benefits}>
             <div>
               <Truck size={20} />
-              <span>Giao hàng demo trong 2-3 ngày</span>
+              <span>Giao hàng trong 2-3 ngày</span>
             </div>
             <div>
               <ShieldCheck size={20} />
