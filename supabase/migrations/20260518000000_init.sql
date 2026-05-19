@@ -8,6 +8,8 @@ create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
   avatar_url text,
+  phone text,
+  gender text,
   created_at timestamptz default now()
 );
 
@@ -20,10 +22,12 @@ create policy "Users insert own profile" on profiles for insert with check (auth
 create or replace function handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, display_name)
+  insert into public.profiles (id, display_name, phone, gender)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1))
+    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+    new.raw_user_meta_data->>'phone',
+    new.raw_user_meta_data->>'gender'
   );
   return new;
 end;

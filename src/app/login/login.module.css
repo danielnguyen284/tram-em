@@ -11,22 +11,135 @@
 
 .card {
   width: 100%;
-  max-width: 400px;
+  max-width: 960px;
   background-color: var(--color-bg-card);
-  padding: var(--space-2xl);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 20px 50px rgba(139, 106, 173, 0.1);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(139, 106, 173, 0.08);
   border: 1px solid var(--color-border);
+  display: flex;
+  overflow: hidden;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.header {
+.brandSection {
+  flex: 1;
+  background: linear-gradient(135deg, var(--color-primary-soft) 0%, var(--color-primary-bg) 100%);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: var(--space-3xl);
+  position: relative;
+  border-right: 1px solid var(--color-border);
+  overflow: hidden;
   text-align: center;
-  margin-bottom: var(--space-xl);
 }
 
-.logo {
-  font-size: 48px;
-  margin-bottom: var(--space-sm);
+.brandLogo {
+  margin-bottom: var(--space-xl);
+  z-index: 10;
+  filter: drop-shadow(0 4px 10px rgba(139, 106, 173, 0.15));
+}
+
+.brandSlogan {
+  font-size: var(--text-body);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  max-width: 320px;
+  z-index: 10;
+}
+
+.ambientBlob {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, var(--color-primary-light) 0%, transparent 70%);
+  opacity: 0.3;
+  border-radius: 50%;
+  filter: blur(40px);
+  z-index: 1;
+  bottom: -50px;
+  right: -50px;
+  animation: floatAmbient 10s ease-in-out infinite alternate;
+}
+
+@keyframes floatAmbient {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(-30px, -30px) scale(1.1);
+  }
+}
+
+.formSection {
+  flex: 1.1;
+  padding: var(--space-2xl) var(--space-3xl);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.signupSection {
+  padding: 28px 40px;
+}
+
+.formHeader {
+  display: none;
+  justify-content: center;
+  margin-bottom: var(--space-lg);
+}
+
+.formTitle {
+  font-size: var(--text-h2);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xs);
+}
+
+.formSubtitle {
+  font-size: var(--text-small);
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xl);
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .card {
+    flex-direction: column;
+    max-width: 480px;
+    max-height: 95vh;
+  }
+
+  .brandSection {
+    display: none;
+  }
+
+  .formSection {
+    padding: var(--space-xl);
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .signupSection {
+    padding: var(--space-lg);
+  }
+
+  .formHeader {
+    display: flex;
+  }
+
+  .formTitle {
+    text-align: center;
+  }
+
+  .formSubtitle {
+    text-align: center;
+    margin-bottom: var(--space-lg);
+  }
 }
 
 .form {
@@ -35,9 +148,25 @@
   gap: var(--space-lg);
 }
 
+.signupForm {
+  gap: 14px;
+}
+
+.signupSection .formTitle {
+  font-size: 24px;
+}
+
+.signupSection .formSubtitle {
+  margin-bottom: var(--space-md);
+}
+
 .submitBtn {
   width: 100%;
   margin-top: var(--space-sm);
+}
+
+.signupForm .submitBtn {
+  margin-top: 2px;
 }
 
 .message {
@@ -55,6 +184,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+}
+
+.signupSection .footer {
+  margin-top: var(--space-md);
+  gap: var(--space-sm);
 }
 
 .toggleBtn {
@@ -85,6 +219,10 @@
   margin: var(--space-sm) 0;
 }
 
+.signupForm .divider {
+  margin: 0;
+}
+
 .divider::before,
 .divider::after {
   content: '';
@@ -112,8 +250,70 @@
   transition: all 0.3s ease;
 }
 
+.signupForm .googleBtn {
+  padding: 10px 12px;
+}
+
 .googleBtn:hover {
   background-color: var(--color-bg-page);
   border-color: var(--color-primary-light);
   transform: translateY(-1px);
+}
+
+.selectGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+}
+
+.selectLabel {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-left: 4px;
+}
+
+.select {
+  width: 100%;
+  min-width: 0;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-bg-input);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--text-body);
+  transition: all 0.3s ease;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b6aad' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 4px var(--color-primary-bg);
+}
+
+.row {
+  display: flex;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+.rowCol {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .row {
+    flex-direction: column;
+    gap: 14px;
+  }
 }

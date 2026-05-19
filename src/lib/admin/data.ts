@@ -1,4 +1,4 @@
-import type { MediaAsset, Order, Post, Product, Profile, Sound } from '@/types/database';
+import type { CommunityModerationTerm, MediaAsset, Order, Post, Product, Profile, Sound } from '@/types/database';
 import { createAdminSupabaseClient } from './supabase';
 
 async function safeCount(table: string) {
@@ -102,6 +102,16 @@ export async function getAdminPosts(limit?: number): Promise<Post[]> {
       author: post.author ?? undefined,
       comments_count: (post as unknown as { comments?: { count: number }[] }).comments?.[0]?.count ?? 0,
     })),
+  );
+}
+
+export async function getCommunityModerationTerms(): Promise<CommunityModerationTerm[]> {
+  return safeSelect<CommunityModerationTerm>('community_moderation_terms', (supabase) =>
+    supabase
+      .from('community_moderation_terms')
+      .select('*')
+      .order('action', { ascending: true })
+      .order('term', { ascending: true }),
   );
 }
 

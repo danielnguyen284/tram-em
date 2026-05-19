@@ -151,6 +151,92 @@ export async function deletePost(formData: FormData) {
   revalidatePath('/community');
 }
 
+export async function approvePost(formData: FormData) {
+  const identity = await requireAdmin();
+  const supabase = createAdminSupabaseClient();
+  const id = String(formData.get('id'));
+
+  await supabase
+    .from('posts')
+    .update({
+      moderation_status: 'approved',
+      moderation_reason: null,
+      reviewed_by: identity.user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  revalidatePath('/admin');
+  revalidatePath('/admin/community');
+  revalidatePath('/community');
+}
+
+export async function rejectPost(formData: FormData) {
+  const identity = await requireAdmin();
+  const supabase = createAdminSupabaseClient();
+  const id = String(formData.get('id'));
+
+  await supabase
+    .from('posts')
+    .update({
+      moderation_status: 'rejected',
+      moderation_reason: optionalString(formData.get('reason')) ?? 'Admin đã từ chối bài viết.',
+      reviewed_by: identity.user.id,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq('id', id);
+
+  revalidatePath('/admin');
+  revalidatePath('/admin/community');
+  revalidatePath('/community');
+}
+
+export async function saveCommunityModerationTerm(formData: FormData) {
+  await requireAdmin();
+  const supabase = createAdminSupabaseClient();
+  const term = String(formData.get('term') ?? '').trim();
+  const action = String(formData.get('action')) === 'review' ? 'review' : 'block';
+
+  if (!term) return;
+
+  await supabase
+    .from('community_moderation_terms')
+    .upsert(
+      {
+        term,
+        action,
+        is_active: true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'term,action' },
+    );
+
+  revalidatePath('/admin/community');
+}
+
+export async function toggleCommunityModerationTerm(formData: FormData) {
+  await requireAdmin();
+  const supabase = createAdminSupabaseClient();
+  const id = String(formData.get('id'));
+  const isActive = formData.get('is_active') === 'true';
+
+  await supabase
+    .from('community_moderation_terms')
+    .update({ is_active: !isActive, updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  revalidatePath('/admin/community');
+}
+
+export async function deleteCommunityModerationTerm(formData: FormData) {
+  await requireAdmin();
+  const supabase = createAdminSupabaseClient();
+  const id = String(formData.get('id'));
+
+  await supabase.from('community_moderation_terms').delete().eq('id', id);
+  revalidatePath('/admin/community');
+}
+
 export async function createNotification(formData: FormData) {
   await requireAdmin();
   const supabase = createAdminSupabaseClient();

@@ -1,11 +1,18 @@
 'use client';
 
-import type { Post } from '@/types/database';
+import type { Comment, PopularTag, Post } from '@/types/database';
 import { timeAgo } from '@/utils/format';
-import { useState, useRef } from 'react';
-import { Heart, MessageCircle, Repeat2, MoreHorizontal, Image as ImageIcon, Smile, Send } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Heart, MessageCircle, Repeat2, MoreHorizontal, Image as ImageIcon, Smile, Send, X, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import styles from './community.module.css';
+import {
+  loadCommunityPosts,
+  loadPostComments,
+  saveCommunityPost,
+  savePostComment,
+  toggleCommunityLike,
+} from './actions';
 
 type CurrentUser = {
   id: string;
@@ -16,9 +23,17 @@ type CurrentUser = {
 type Props = {
   initialPosts: Post[];
   currentUser: CurrentUser;
+  initialPopularTags: PopularTag[];
+  initialHasMore: boolean;
 };
 
-const TOPIC_TAGS = ['Tất cả', 'ChuaLanh', 'TamSu', 'NhipTho', 'ASMR', 'YeuBanThan'];
+const FALLBACK_TAGS = ['ChuaLanh', 'TamSu', 'YeuBanThan', 'NhipTho', 'ASMR', 'BinhYen'];
+
+const POPULAR_EMOJIS = [
+  '😊', '🥰', '🌸', '✨', '🍃', '🍵', '🕯️', '🧘', '💆', '🌻',
+  '❤️', '🎉', '🌟', '🍀', '🌈', '☀️', '☁️', '🎈', '🎵', '🐱',
+  '🐶', '🐬', '🐾', '🍕', '🍰', '☕', '🏡', '🌍', '✈️', '💬'
+];
 
 function Avatar({ src, size = 40 }: { src: string; size?: number }) {
   return (
@@ -28,24 +43,139 @@ function Avatar({ src, size = 40 }: { src: string; size?: number }) {
   );
 }
 
+function renderPostContent(content: string) {
+  if (!content) return null;
+  // Split content by whitespace to identify hashtags while preserving all whitespace/newlines
+  const parts = content.split(/(\s+)/);
+  return parts.map((part, index) => {
+    if (part.startsWith('#') && part.length > 1) {
+      return (
+        <span key={index} className={styles.postHashtag}>
+          {part}
+        </span>
+      );
+    }
+    return part;
+  });
+}
+
 function PostCard({
   post,
   currentUser,
   onLike,
+  onCommentSaved,
 }: {
   post: Post;
   currentUser: CurrentUser;
   onLike: (id: string) => void;
+  onCommentSaved: (id: string) => void;
 }) {
   const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [hasLoadedComments, setHasLoadedComments] = useState(false);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const [replyTo, setReplyTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [commentError, setCommentError] = useState<string | null>(null);
   const authorName = post.author?.display_name ?? 'Ẩn danh';
   const authorAvatar = post.author?.avatar_url ?? `https://i.pravatar.cc/150?u=${post.author_id}`;
 
-  const submitComment = async () => {
-    if (!commentText.trim() || !currentUser) return;
-    // For now, optimistic — server action can be added later
-    setCommentText('');
+  const loadComments = async () => {
+    if (hasLoadedComments || isLoadingComments) return;
+    setIsLoadingComments(true);
+    setCommentError(null);
+
+    try {
+      const nextComments = await loadPostComments(post.id);
+      setComments(nextComments);
+      setHasLoadedComments(true);
+    } catch (err: unknown) {
+      setCommentError(err instanceof Error ? err.message : 'Không tải được bình luận.');
+    } finally {
+      setIsLoadingComments(false);
+    }
+  };
+
+  const toggleComments = () => {
+    setShowComments((value) => !value);
+    if (!showComments) {
+      void loadComments();
+    }
+  };
+
+  const submitComment = async (parentId: string | null = null) => {
+    const content = parentId ? replyText.trim() : commentText.trim();
+    if (!content || !currentUser) return;
+
+    setCommentError(null);
+
+    try {
+      const saved = await savePostComment(post.id, content, parentId);
+      setComments((prev) => [...prev, saved]);
+      onCommentSaved(post.id);
+
+      if (parentId) {
+        setReplyText('');
+        setReplyTo(null);
+      } else {
+        setCommentText('');
+      }
+    } catch (err: unknown) {
+      setCommentError(err instanceof Error ? err.message : 'Không đăng được bình luận.');
+    }
+  };
+
+  const topLevelComments = comments.filter((comment) => !comment.parent_id);
+  const repliesByParent = comments.reduce<Record<string, Comment[]>>((acc, comment) => {
+    if (comment.parent_id) {
+      acc[comment.parent_id] = [...(acc[comment.parent_id] ?? []), comment];
+    }
+    return acc;
+  }, {});
+
+  const renderComment = (comment: Comment, isReply = false) => {
+    const commentAuthor = comment.author?.display_name ?? 'Ẩn danh';
+    const commentAvatar = comment.author?.avatar_url ?? `https://i.pravatar.cc/150?u=${comment.author_id}`;
+
+    return (
+      <div key={comment.id} className={`${styles.comment} ${isReply ? styles.replyComment : ''}`}>
+        <Avatar src={commentAvatar} size={isReply ? 26 : 30} />
+        <div className={styles.commentWrap}>
+          <div className={styles.commentBody}>
+            <span className={styles.commentAuthor}>{commentAuthor}</span>
+            <span className={styles.commentText}>{comment.content}</span>
+          </div>
+          <div className={styles.commentMeta}>
+            <span>{timeAgo(comment.created_at)}</span>
+            {!isReply && currentUser && (
+              <button type="button" onClick={() => setReplyTo(comment.id)}>
+                Trả lời
+              </button>
+            )}
+          </div>
+          {replyTo === comment.id && currentUser && (
+            <div className={styles.replyInput}>
+              <Avatar src={currentUser.avatar} size={24} />
+              <input
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                placeholder={`Trả lời ${commentAuthor}...`}
+                className={styles.commentField}
+                onKeyDown={(e) => e.key === 'Enter' && submitComment(comment.id)}
+              />
+              <button className={styles.sendBtn} onClick={() => submitComment(comment.id)}>
+                <Send size={15} />
+              </button>
+              <button className={styles.cancelReplyBtn} onClick={() => setReplyTo(null)}>
+                <X size={14} />
+              </button>
+            </div>
+          )}
+          {(repliesByParent[comment.id] ?? []).map((reply) => renderComment(reply, true))}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -59,17 +189,11 @@ function PostCard({
         <button className={styles.moreBtn}><MoreHorizontal size={18} /></button>
       </div>
 
-      <p className={styles.postText}>{post.content}</p>
+      <p className={styles.postText}>{renderPostContent(post.content)}</p>
 
       {post.image_url && (
         <div className={styles.postImage}>
           <Image src={post.image_url} alt="post" fill className={styles.postImg} />
-        </div>
-      )}
-
-      {post.tags.length > 0 && (
-        <div className={styles.postTags}>
-          {post.tags.map(t => <span key={t} className={styles.tag}>#{t}</span>)}
         </div>
       )}
 
@@ -81,7 +205,7 @@ function PostCard({
           <Heart size={18} fill={post.liked_by_user ? 'currentColor' : 'none'} />
           <span>{post.likes_count}</span>
         </button>
-        <button className={styles.actionBtn} onClick={() => setShowComments(v => !v)}>
+        <button className={styles.actionBtn} onClick={toggleComments}>
           <MessageCircle size={18} />
           <span>{post.comments_count ?? 0}</span>
         </button>
@@ -91,34 +215,74 @@ function PostCard({
         </button>
       </div>
 
-      {showComments && currentUser && (
+      {showComments && (
         <div className={styles.commentsSection}>
-          <div className={styles.commentInput}>
-            <Avatar src={currentUser.avatar} size={30} />
-            <input
-              value={commentText}
-              onChange={e => setCommentText(e.target.value)}
-              placeholder="Viết bình luận..."
-              className={styles.commentField}
-              onKeyDown={e => e.key === 'Enter' && submitComment()}
-            />
-            <button className={styles.sendBtn} onClick={submitComment}>
-              <Send size={16} />
-            </button>
-          </div>
+          {isLoadingComments && <p className={styles.commentState}>Đang tải bình luận...</p>}
+          {!isLoadingComments && topLevelComments.map((comment) => renderComment(comment))}
+          {!isLoadingComments && hasLoadedComments && comments.length === 0 && (
+            <p className={styles.commentState}>Chưa có bình luận nào.</p>
+          )}
+          {commentError && <p className={styles.commentError}>{commentError}</p>}
+
+          {currentUser ? (
+            <div className={styles.commentInput}>
+              <Avatar src={currentUser.avatar} size={30} />
+              <input
+                value={commentText}
+                onChange={e => setCommentText(e.target.value)}
+                placeholder="Viết bình luận..."
+                className={styles.commentField}
+                onKeyDown={e => e.key === 'Enter' && submitComment()}
+              />
+              <button className={styles.sendBtn} onClick={() => submitComment()}>
+                <Send size={16} />
+              </button>
+            </div>
+          ) : (
+            <p className={styles.commentState}>Đăng nhập để bình luận.</p>
+          )}
         </div>
       )}
     </article>
   );
 }
 
-export default function CommunityClient({ initialPosts, currentUser }: Props) {
+export default function CommunityClient({ initialPosts, currentUser, initialPopularTags, initialHasMore }: Props) {
   const [posts, setPosts] = useState(initialPosts);
   const [draft, setDraft] = useState('');
   const [activeTag, setActiveTag] = useState('Tất cả');
+  const [nextOffset, setNextOffset] = useState(initialPosts.length);
+  const [hasMore, setHasMore] = useState(initialHasMore);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isTagLoading, setIsTagLoading] = useState(false);
+  const [isPosting, setIsPosting] = useState(false);
+  const [moderationNotice, setModerationNotice] = useState<string | null>(null);
+  
+  // Image Uploading States
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [isImageUploading, setIsImageUploading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  
+  // Emoji Picker State
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const tagList = initialPopularTags.length > 0 ? initialPopularTags.map((tag) => tag.tag) : FALLBACK_TAGS;
+  const topicTags = ['Tất cả', ...tagList];
 
-  const handleLike = (id: string) => {
+  const handleEmojiClick = (emoji: string) => {
+    setDraft(prev => prev + emoji);
+    setShowEmojiPicker(false);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
+
+  const handleLike = async (id: string) => {
+    // Optimistic toggle
     setPosts(prev => prev.map(p =>
       p.id === id
         ? {
@@ -128,46 +292,176 @@ export default function CommunityClient({ initialPosts, currentUser }: Props) {
           }
         : p
     ));
-    // Optimistic — fire-and-forget server call can be added
+
+    try {
+      await toggleCommunityLike(id);
+    } catch (err) {
+      console.error('Failed to toggle like:', err);
+      // Rollback on failure
+      setPosts(prev => prev.map(p =>
+        p.id === id
+          ? {
+              ...p,
+              liked_by_user: !p.liked_by_user,
+              likes_count: p.liked_by_user ? p.likes_count - 1 : p.likes_count + 1,
+            }
+          : p
+      ));
+    }
   };
 
-  const handlePost = () => {
-    if (!draft.trim() || !currentUser) return;
-    // Optimistic add
-    const newPost: Post = {
-      id: `temp-${Date.now()}`,
-      author_id: currentUser.id,
-      content: draft.trim(),
-      image_url: null,
-      tags: [],
-      likes_count: 0,
-      reposts_count: 0,
-      created_at: new Date().toISOString(),
-      author: {
-        id: currentUser.id,
-        display_name: currentUser.name,
-        avatar_url: currentUser.avatar,
-        created_at: new Date().toISOString(),
+  const loadMorePosts = useCallback(async () => {
+    if (isLoadingMore || isTagLoading || !hasMore) return;
+    setIsLoadingMore(true);
+
+    try {
+      const result = await loadCommunityPosts(nextOffset, activeTag);
+      setPosts((prev) => [...prev, ...result.posts]);
+      setNextOffset(result.nextOffset);
+      setHasMore(result.hasMore);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [activeTag, hasMore, isLoadingMore, isTagLoading, nextOffset]);
+
+  const handleTagSelect = async (tag: string) => {
+    if (tag === activeTag && posts.length > 0) return;
+
+    setActiveTag(tag);
+    setIsTagLoading(true);
+    setPosts([]);
+    setNextOffset(0);
+    setHasMore(true);
+
+    try {
+      const result = await loadCommunityPosts(0, tag);
+      setPosts(result.posts);
+      setNextOffset(result.nextOffset);
+      setHasMore(result.hasMore);
+    } finally {
+      setIsTagLoading(false);
+    }
+  };
+
+  const handleCommentSaved = (id: string) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === id ? { ...post, comments_count: (post.comments_count ?? 0) + 1 } : post,
+      ),
+    );
+  };
+
+  const handleSelectImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setImageError('Định dạng ảnh không hỗ trợ. Chỉ nhận PNG, JPG, GIF hoặc WebP.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setImageError('Dung lượng ảnh tối đa là 10MB.');
+      return;
+    }
+
+    setImageError(null);
+    setImagePreviewUrl(URL.createObjectURL(file));
+    setIsImageUploading(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = (await res.json()) as { url?: string; error?: string };
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Lỗi tải ảnh lên server.');
+      }
+
+      if (!data.url) {
+        throw new Error('Server không trả về URL ảnh.');
+      }
+
+      setUploadedImageUrl(data.url);
+    } catch (err: unknown) {
+      setImageError(err instanceof Error ? err.message : 'Lỗi kết nối upload.');
+    } finally {
+      setIsImageUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreviewUrl(null);
+    setUploadedImageUrl(null);
+    setImageError(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handlePost = async () => {
+    if (!draft.trim() || !currentUser || isImageUploading || isPosting) return;
+
+    // Automatically parse tags/hashtags from draft content
+    const tagMatches = draft.match(/#\w+/g);
+    const tags = tagMatches ? tagMatches.map(t => t.slice(1)) : [];
+    const content = draft.trim();
+    const imageUrl = uploadedImageUrl || undefined;
+    setIsPosting(true);
+    setModerationNotice(null);
+
+    try {
+      const saved = await saveCommunityPost(content, imageUrl, tags);
+      setDraft('');
+      handleRemoveImage();
+
+      if (saved.moderation_status === 'pending_review') {
+        setModerationNotice('Bài viết đã được gửi vào hàng chờ duyệt vì có từ ngữ nhạy cảm.');
+        return;
+      }
+
+      const shouldPrepend =
+        activeTag === 'Tất cả' ||
+        saved.tags.some((tag) => tag.toLowerCase() === activeTag.toLowerCase());
+
+      if (shouldPrepend) {
+        setPosts(prev => [{ ...saved, liked_by_user: false, comments_count: 0 }, ...prev]);
+        setNextOffset((value) => value + 1);
+      }
+    } catch (err: unknown) {
+      console.error('Failed to create post:', err);
+      setModerationNotice(err instanceof Error ? err.message : 'Đăng bài viết thất bại. Vui lòng thử lại sau.');
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  useEffect(() => {
+    const target = loadMoreRef.current;
+    if (!target || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          void loadMorePosts();
+        }
       },
-      comments_count: 0,
-      liked_by_user: false,
-    };
-    setPosts(prev => [newPost, ...prev]);
-    setDraft('');
-  };
+      { rootMargin: '260px 0px' },
+    );
 
-  const filteredPosts = activeTag === 'Tất cả'
-    ? posts
-    : posts.filter(p => p.tags.some(t => t.toLowerCase().includes(activeTag.toLowerCase())));
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, loadMorePosts]);
 
   return (
     <div className={styles.layout}>
       <main className={styles.feed}>
-        <div className={styles.feedHeader}>
-          <h1 className={styles.title}>Cộng đồng tích cực</h1>
-          <p className={styles.subtitle}>Không phân biệt, chỉ yêu thương và đồng hành</p>
-        </div>
-
         {/* Compose */}
         {currentUser && (
           <div className={styles.compose}>
@@ -181,17 +475,92 @@ export default function CommunityClient({ initialPosts, currentUser }: Props) {
                 onChange={e => setDraft(e.target.value)}
                 rows={3}
               />
+
+              {imagePreviewUrl && (
+                <div className={styles.imagePreviewContainer}>
+                  <Image
+                    src={imagePreviewUrl}
+                    alt="Preview"
+                    width={700}
+                    height={280}
+                    unoptimized
+                    className={styles.imagePreviewImg}
+                  />
+                  {isImageUploading && (
+                    <div className={styles.imagePreviewOverlay}>
+                      <Loader2 className={styles.spinner} size={24} />
+                      <span>Đang tải ảnh lên...</span>
+                    </div>
+                  )}
+                  {!isImageUploading && (
+                    <button className={styles.removeImageBtn} onClick={handleRemoveImage}>
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {imageError && (
+                <div className={styles.imageError}>
+                  {imageError}
+                </div>
+              )}
+
+              {moderationNotice && (
+                <div className={styles.imageError}>
+                  {moderationNotice}
+                </div>
+              )}
+
               <div className={styles.composeToolbar}>
-                <div className={styles.composeActions}>
-                  <button className={styles.composeIcon}><ImageIcon size={18} /></button>
-                  <button className={styles.composeIcon}><Smile size={18} /></button>
+                <div className={styles.composeActions} style={{ position: 'relative' }}>
+                  <button
+                    type="button"
+                    className={styles.composeIcon}
+                    onClick={() => fileInputRef.current?.click()}
+                    title="Đính kèm ảnh"
+                  >
+                    <ImageIcon size={18} />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.composeIcon}
+                    onClick={() => setShowEmojiPicker(prev => !prev)}
+                    title="Nhãn dán cảm xúc"
+                  >
+                    <Smile size={18} />
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleSelectImage}
+                    accept="image/png, image/jpeg, image/webp, image/gif"
+                    style={{ display: 'none' }}
+                  />
+
+                  {showEmojiPicker && (
+                    <div className={styles.emojiPicker}>
+                      <div className={styles.emojiGrid}>
+                        {POPULAR_EMOJIS.map(emoji => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            className={styles.emojiBtn}
+                            onClick={() => handleEmojiClick(emoji)}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <button
                   className={styles.postBtn}
                   onClick={handlePost}
-                  disabled={!draft.trim()}
+                  disabled={!draft.trim() || isImageUploading || isPosting}
                 >
-                  Post
+                  {isPosting ? 'Đang đăng...' : 'Đăng bài'}
                 </button>
               </div>
             </div>
@@ -200,11 +569,11 @@ export default function CommunityClient({ initialPosts, currentUser }: Props) {
 
         {/* Filter tags */}
         <div className={styles.tagFilter}>
-          {TOPIC_TAGS.map(t => (
+          {topicTags.map(t => (
             <button
               key={t}
               className={`${styles.tagBtn} ${activeTag === t ? styles.tagActive : ''}`}
-              onClick={() => setActiveTag(t)}
+              onClick={() => handleTagSelect(t)}
             >
               #{t}
             </button>
@@ -213,13 +582,26 @@ export default function CommunityClient({ initialPosts, currentUser }: Props) {
 
         {/* Posts */}
         <div className={styles.posts}>
-          {filteredPosts.map(post => (
-            <PostCard key={post.id} post={post} currentUser={currentUser} onLike={handleLike} />
+          {isTagLoading && <p className={styles.feedState}>Đang tải bài viết...</p>}
+          {!isTagLoading && posts.map(post => (
+            <PostCard
+              key={post.id}
+              post={post}
+              currentUser={currentUser}
+              onLike={handleLike}
+              onCommentSaved={handleCommentSaved}
+            />
           ))}
-          {filteredPosts.length === 0 && (
-            <p style={{ textAlign: 'center', opacity: 0.6, padding: '2rem' }}>
+          {!isTagLoading && posts.length === 0 && (
+            <p className={styles.feedState}>
               Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ!
             </p>
+          )}
+          <div ref={loadMoreRef} className={styles.loadMoreSentinel} />
+          {!isTagLoading && hasMore && (
+            <button className={styles.loadMoreBtn} onClick={loadMorePosts} disabled={isLoadingMore}>
+              {isLoadingMore ? 'Đang tải...' : 'Tải thêm'}
+            </button>
           )}
         </div>
       </main>
@@ -229,8 +611,14 @@ export default function CommunityClient({ initialPosts, currentUser }: Props) {
         <div className={styles.sideCard}>
           <h3 className={styles.sideTitle}>Hashtag phổ biến</h3>
           <div className={styles.hashtagList}>
-            {['#ChuaLanh', '#TamSu', '#YeuBanThan', '#NhipTho', '#ASMR', '#BinhYen'].map(h => (
-              <button key={h} className={styles.hashtagPill}>{h}</button>
+            {tagList.map(tag => (
+              <button
+                key={tag}
+                className={styles.hashtagPill}
+                onClick={() => handleTagSelect(tag)}
+              >
+                #{tag}
+              </button>
             ))}
           </div>
         </div>

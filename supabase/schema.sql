@@ -8,6 +8,11 @@ create table if not exists profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   display_name text,
   avatar_url text,
+  phone text,
+  gender text,
+  username text unique,
+  address text,
+  email text,
   created_at timestamptz default now()
 );
 
@@ -20,10 +25,14 @@ create policy "Users insert own profile" on profiles for insert with check (auth
 create or replace function handle_new_user()
 returns trigger as $$
 begin
-  insert into public.profiles (id, display_name)
+  insert into public.profiles (id, display_name, phone, gender, email, username)
   values (
     new.id,
-    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1))
+    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
+    new.raw_user_meta_data->>'phone',
+    new.raw_user_meta_data->>'gender',
+    new.email,
+    coalesce(new.raw_user_meta_data->>'username', split_part(new.email, '@', 1))
   );
   return new;
 end;
@@ -77,19 +86,27 @@ create policy "Sounds viewable by everyone" on sounds for select using (is_activ
 -- ─── Posts (Community) ───────────────────────────────────────
 create table if not exists posts (
   id uuid primary key default gen_random_uuid(),
-  author_id uuid references auth.users(id) on delete cascade,
+  author_id uuid references profiles(id) on delete cascade,
   content text not null,
   image_url text,
   tags text[] default '{}',
   likes_count integer default 0,
   reposts_count integer default 0,
+  moderation_status text not null default 'approved' check (moderation_status in ('approved', 'pending_review', 'rejected')),
+  moderation_reason text,
+  moderation_matches text[] not null default '{}',
+  reviewed_by uuid references profiles(id) on delete set null,
+  reviewed_at timestamptz,
   created_at timestamptz default now()
 );
 
 alter table posts enable row level security;
-create policy "Posts viewable by everyone" on posts for select using (true);
+create policy "Approved posts viewable by everyone" on posts for select using (moderation_status = 'approved');
 create policy "Auth users create posts" on posts for insert with check (auth.uid() = author_id);
 create policy "Authors delete own posts" on posts for delete using (auth.uid() = author_id);
+
+create index if not exists posts_moderation_status_created_at_idx
+  on posts (moderation_status, created_at desc);
 
 -- ─── Post Likes ──────────────────────────────────────────────
 create table if not exists post_likes (
@@ -128,7 +145,8 @@ create trigger on_post_like_change
 create table if not exists comments (
   id uuid primary key default gen_random_uuid(),
   post_id uuid references posts(id) on delete cascade,
-  author_id uuid references auth.users(id) on delete cascade,
+  author_id uuid references profiles(id) on delete cascade,
+  parent_id uuid references comments(id) on delete cascade,
   content text not null,
   created_at timestamptz default now()
 );
@@ -137,6 +155,25 @@ alter table comments enable row level security;
 create policy "Comments viewable by everyone" on comments for select using (true);
 create policy "Auth users create comments" on comments for insert with check (auth.uid() = author_id);
 create policy "Authors delete own comments" on comments for delete using (auth.uid() = author_id);
+
+create index if not exists comments_post_parent_created_at_idx
+  on comments (post_id, parent_id, created_at);
+
+-- ─── Community Moderation Terms ──────────────────────────────
+create table if not exists community_moderation_terms (
+  id uuid primary key default gen_random_uuid(),
+  term text not null,
+  action text not null check (action in ('block', 'review')),
+  is_active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (term, action)
+);
+
+alter table community_moderation_terms enable row level security;
+
+create index if not exists community_moderation_terms_active_idx
+  on community_moderation_terms (is_active, action);
 
 -- ─── Chat Threads (AI) ──────────────────────────────────────
 create table if not exists chat_threads (
@@ -318,4 +355,6 @@ create trigger shipping_addresses_updated_at before update on shipping_addresses
 create trigger chat_threads_updated_at before update on chat_threads
   for each row execute function update_updated_at();
 create trigger cart_items_updated_at before update on cart_items
+  for each row execute function update_updated_at();
+create trigger community_moderation_terms_updated_at before update on community_moderation_terms
   for each row execute function update_updated_at();

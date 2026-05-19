@@ -40,6 +40,11 @@ export type Post = {
   tags: string[];
   likes_count: number;
   reposts_count: number;
+  moderation_status: 'approved' | 'pending_review' | 'rejected';
+  moderation_reason: string | null;
+  moderation_matches: string[];
+  reviewed_by: string | null;
+  reviewed_at: string | null;
   created_at: string;
   // Joined fields
   author?: Profile;
@@ -51,10 +56,17 @@ export type Comment = {
   id: string;
   post_id: string;
   author_id: string | null;
+  parent_id: string | null;
   content: string;
   created_at: string;
   // Joined
   author?: Profile;
+};
+
+export type PopularTag = {
+  tag: string;
+  posts_count: number;
+  hot_score: number;
 };
 
 export type Profile = {
@@ -62,6 +74,11 @@ export type Profile = {
   display_name: string | null;
   avatar_url: string | null;
   role?: 'admin' | 'customer' | null;
+  phone?: string | null;
+  gender?: string | null;
+  username?: string | null;
+  address?: string | null;
+  email?: string | null;
   created_at: string;
 };
 
@@ -72,6 +89,15 @@ export type MediaAsset = {
   type: 'image' | 'audio' | 'file';
   url: string;
   created_at?: string | null;
+};
+
+export type CommunityModerationTerm = {
+  id: string;
+  term: string;
+  action: 'block' | 'review';
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type ChatThread = {

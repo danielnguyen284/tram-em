@@ -7,11 +7,11 @@ import { createClient } from '@/utils/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import {
   Bell,
-  Camera,
   ChevronDown,
   LogOut,
   Menu,
   Moon,
+  ReceiptText,
   ShieldCheck,
   ShoppingCart,
   Sun,
@@ -46,7 +46,6 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
   const [profile, setProfile] = useState<ProfileState | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [avatarUploading, setAvatarUploading] = useState(false);
   const cartRef = useRef<HTMLDivElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
   const supabase = useMemo(() => createClient(), []);
@@ -133,48 +132,6 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
     profile?.display_name ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Bạn';
   const avatarSrc = profile?.avatar_url ?? DEFAULT_AVATARS[gender];
 
-  const updateGender = async (nextGender: Gender) => {
-    const { data, error } = await supabase.auth.updateUser({
-      data: { ...user?.user_metadata, gender: nextGender },
-    });
-
-    if (!error && data.user) {
-      setUser(data.user);
-    }
-  };
-
-  const uploadAvatar = async (file: File | null | undefined) => {
-    if (!file) return;
-
-    setAvatarUploading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('avatar', file);
-
-      const response = await fetch('/api/profile/avatar', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = (await response.json()) as { avatarUrl?: string; error?: string };
-
-      if (!response.ok || !data.avatarUrl) {
-        throw new Error(data.error ?? 'Upload avatar thất bại.');
-      }
-
-      setProfile((current) => ({
-        display_name: current?.display_name ?? displayName,
-        avatar_url: data.avatarUrl ?? null,
-      }));
-    } catch (error) {
-      console.error(error);
-      alert(error instanceof Error ? error.message : 'Upload avatar thất bại.');
-    } finally {
-      setAvatarUploading(false);
-    }
-  };
-
   return (
     <header className={styles.header}>
       <button
@@ -248,35 +205,6 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
                   </div>
                 </div>
 
-                <label className={`${styles.menuItem} ${styles.uploadItem}`}>
-                  <Camera size={17} />
-                  <span>{avatarUploading ? 'Đang tải avatar...' : 'Đổi avatar'}</span>
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    className={styles.fileInput}
-                    disabled={avatarUploading}
-                    onChange={(event) => uploadAvatar(event.target.files?.[0])}
-                  />
-                </label>
-
-                <div className={styles.genderPicker} aria-label="Avatar mặc định theo giới tính">
-                  <button
-                    type="button"
-                    className={gender === 'male' ? styles.genderActive : ''}
-                    onClick={() => updateGender('male')}
-                  >
-                    Nam
-                  </button>
-                  <button
-                    type="button"
-                    className={gender === 'female' ? styles.genderActive : ''}
-                    onClick={() => updateGender('female')}
-                  >
-                    Nữ
-                  </button>
-                </div>
-
                 <Link href="/profile" className={styles.menuItem} onClick={() => setProfileOpen(false)}>
                   <User size={17} />
                   <span>Hồ sơ cá nhân</span>
@@ -284,6 +212,10 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
                 <Link href="/account/security" className={styles.menuItem} onClick={() => setProfileOpen(false)}>
                   <ShieldCheck size={17} />
                   <span>Tài khoản & bảo mật</span>
+                </Link>
+                <Link href="/account/orders" className={styles.menuItem} onClick={() => setProfileOpen(false)}>
+                  <ReceiptText size={17} />
+                  <span>Đơn hàng</span>
                 </Link>
                 <button type="button" onClick={() => signOut()} className={`${styles.menuItem} ${styles.logoutBtn}`}>
                   <LogOut size={17} />

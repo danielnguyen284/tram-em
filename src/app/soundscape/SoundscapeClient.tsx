@@ -2,8 +2,9 @@
 
 import type { Sound as DbSound } from '@/types/database';
 import { useSoundStore } from '@/store/useSoundStore';
+import { toPlayableSound } from '@/lib/sounds/playback';
 import { Pause, Play } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styles from './soundscape.module.css';
 
 type Props = {
@@ -13,7 +14,13 @@ type Props = {
 
 export default function SoundscapeClient({ sounds, categories }: Props) {
   const [activeCategory, setActiveCategory] = useState(categories[0] ?? 'Tất cả');
-  const { addSound, activeSounds, removeSound } = useSoundStore();
+  const { addSound, activeSounds, removeSound, setPlaylist } = useSoundStore();
+
+  const playlist = useMemo(() => sounds.map(toPlayableSound), [sounds]);
+
+  useEffect(() => {
+    setPlaylist(playlist);
+  }, [playlist, setPlaylist]);
 
   const visibleSounds = activeCategory === 'Tất cả'
     ? sounds
@@ -26,15 +33,7 @@ export default function SoundscapeClient({ sounds, categories }: Props) {
       return;
     }
 
-    addSound({
-      id: sound.id,
-      name: sound.name,
-      url: sound.audio_url,
-      icon: sound.icon ?? 'music',
-      category: sound.category,
-      duration: sound.duration ?? undefined,
-      image: sound.image_url ?? undefined,
-    });
+    addSound(toPlayableSound(sound));
   };
 
   return (

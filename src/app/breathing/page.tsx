@@ -36,8 +36,16 @@ export default function BreathingPage() {
   const [isActive, setIsActive] = useState(false);
   const [selectedTech, setSelectedTech] = useState(techniques[1]); // Default to Box Breathing
   const [cycles, setCycles] = useState(4);
+  const [cyclesLeft, setCyclesLeft] = useState(4);
+  const [isCompleted, setIsCompleted] = useState(false);
   const [phase, setPhase] = useState<'inhale' | 'hold1' | 'exhale' | 'hold2'>('inhale');
   const [timeLeft, setTimeLeft] = useState(selectedTech.inhale);
+
+  useEffect(() => {
+    if (!isActive) {
+      setCyclesLeft(cycles);
+    }
+  }, [cycles, isActive]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -63,10 +71,28 @@ export default function BreathingPage() {
                 setPhase('hold2');
                 return selectedTech.hold2;
               } else {
+                // Hết 1 chu kỳ (không có hold2)
+                setCyclesLeft((c) => {
+                  if (c <= 1) {
+                    setIsActive(false);
+                    setIsCompleted(true);
+                    return cycles;
+                  }
+                  return c - 1;
+                });
                 setPhase('inhale');
                 return selectedTech.inhale;
               }
             } else {
+              // Hết 1 chu kỳ (có hold2)
+              setCyclesLeft((c) => {
+                if (c <= 1) {
+                  setIsActive(false);
+                  setIsCompleted(true);
+                  return cycles;
+                }
+                return c - 1;
+              });
               setPhase('inhale');
               return selectedTech.inhale;
             }
@@ -77,17 +103,20 @@ export default function BreathingPage() {
     }
 
     return () => clearInterval(timer);
-  }, [isActive, phase, selectedTech]);
+  }, [isActive, phase, selectedTech, cycles]);
 
   const handleToggle = () => {
     if (!isActive) {
       setPhase('inhale');
       setTimeLeft(selectedTech.inhale);
+      setCyclesLeft(cycles);
+      setIsCompleted(false);
     }
     setIsActive(!isActive);
   };
 
   const getPhaseText = () => {
+    if (isCompleted && !isActive) return 'Hoàn thành!';
     if (!isActive) return 'Sẵn sàng';
     switch (phase) {
       case 'inhale': return 'Hít vào';
@@ -121,6 +150,7 @@ export default function BreathingPage() {
                     onClick={() => {
                       setSelectedTech(tech);
                       setIsActive(false);
+                      setIsCompleted(false);
                       setPhase('inhale');
                       setTimeLeft(tech.inhale);
                     }}
@@ -184,7 +214,9 @@ export default function BreathingPage() {
                   ease: "easeInOut" 
                 }}
               >
-                <div className={styles.timerText}>{timeLeft}</div>
+                <div className={styles.timerText}>
+                  {isCompleted && !isActive ? '✓' : timeLeft}
+                </div>
               </motion.div>
               
               <div className={styles.statusLabel}>
@@ -204,7 +236,12 @@ export default function BreathingPage() {
 
             <div className={styles.actionArea}>
               <p className={styles.instruction}>
-                Nhấn Bắt đầu và làm theo hướng dẫn của vòng tròn.
+                {isActive 
+                  ? `Chu kỳ ${cycles - cyclesLeft + 1} / ${cycles}`
+                  : isCompleted
+                    ? `Tuyệt vời! Bạn đã hoàn thành ${cycles} chu kỳ thở.`
+                    : 'Nhấn Bắt đầu và làm theo hướng dẫn của vòng tròn.'
+                }
               </p>
               
               <button 

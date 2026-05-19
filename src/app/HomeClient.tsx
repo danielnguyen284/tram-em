@@ -2,7 +2,10 @@
 
 import type { Sound } from '@/types/database';
 import Link from 'next/link';
-import { Play, Music, Gamepad2, Wind, Users, Bot, ChevronRight } from 'lucide-react';
+import { Play, Pause, Music, Gamepad2, Wind, Users, Bot, ChevronRight } from 'lucide-react';
+import { useSoundStore } from '@/store/useSoundStore';
+import { toPlayableSound } from '@/lib/sounds/playback';
+import { useEffect, useMemo } from 'react';
 import styles from './page.module.css';
 
 type Props = {
@@ -10,6 +13,24 @@ type Props = {
 };
 
 export default function HomeClient({ featuredSounds }: Props) {
+  const { addSound, activeSounds, removeSound, setPlaylist } = useSoundStore();
+
+  const playlist = useMemo(() => featuredSounds.map(toPlayableSound), [featuredSounds]);
+
+  useEffect(() => {
+    setPlaylist(playlist);
+  }, [playlist, setPlaylist]);
+
+  const handleToggleSound = (sound: Sound) => {
+    const isActive = activeSounds.some((s) => s.id === sound.id && s.isPlaying);
+    if (isActive) {
+      removeSound(sound.id);
+      return;
+    }
+
+    addSound(toPlayableSound(sound));
+  };
+
   return (
     <div className={styles.container}>
       {/* Banner Section */}
@@ -21,8 +42,7 @@ export default function HomeClient({ featuredSounds }: Props) {
             Nơi cảm xúc được lắng nghe, thấu hiểu<br />và chữa lành mỗi ngày 💜
           </p>
           <div className={styles.heroActions}>
-            <button className={styles.btnPrimary}>Bắt đầu hành trình chữa lành</button>
-            <button className={styles.btnSecondary}>Khám phá ngay</button>
+
           </div>
         </div>
       </div>
@@ -68,18 +88,32 @@ export default function HomeClient({ featuredSounds }: Props) {
           <Link href="/soundscape" className={styles.viewAllBtn}>Xem tất cả <ChevronRight size={16} /></Link>
         </div>
         <div className={styles.suggestionsGrid}>
-          {featuredSounds.map((sound) => (
-            <div key={sound.id} className={styles.suggestionCard}>
-              <div className={styles.thumbnailWrapper}>
-                {sound.image_url && (
-                  <img src={sound.image_url} alt={sound.name} className={styles.thumbnail} />
-                )}
-                <button className={styles.playBtn}><Play fill="currentColor" size={20} /></button>
+          {featuredSounds.map((sound) => {
+            const isActive = activeSounds.some((s) => s.id === sound.id && s.isPlaying);
+
+            return (
+              <div key={sound.id} className={styles.suggestionCard}>
+                <button
+                  type="button"
+                  className={styles.thumbnailWrapper}
+                  onClick={() => handleToggleSound(sound)}
+                  aria-label={`${isActive ? 'Tạm dừng' : 'Phát'} ${sound.name}`}
+                >
+                  {sound.image_url && (
+                    <img src={sound.image_url} alt={sound.name} className={styles.thumbnail} />
+                  )}
+                  <span
+                    className={styles.playBtn}
+                    aria-label={`${isActive ? 'Tạm dừng' : 'Phát'} ${sound.name}`}
+                  >
+                    {isActive ? <Pause fill="currentColor" size={20} /> : <Play fill="currentColor" size={20} />}
+                  </span>
+                </button>
+                <h4>{sound.name}</h4>
+                <p>{sound.category} - {sound.duration}</p>
               </div>
-              <h4>{sound.name}</h4>
-              <p>{sound.category} - {sound.duration}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

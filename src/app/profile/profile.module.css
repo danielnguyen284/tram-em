@@ -1,96 +1,292 @@
 .page {
-  display: grid;
-  gap: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
   max-width: 880px;
+  margin: 0 auto;
+  padding: 16px 0 40px 0;
+}
+
+.pageTitle {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
 }
 
 .header {
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 22px;
+  gap: 20px;
+  padding: 24px;
   border: 1px solid var(--color-border);
   border-radius: 16px;
   background: var(--color-bg-card);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 }
 
 .avatar {
   position: relative;
   display: block;
-  width: 84px;
-  height: 84px;
+  width: 96px;
+  height: 96px;
   flex: 0 0 auto;
   overflow: hidden;
   border-radius: 50%;
   border: 3px solid var(--color-primary-soft);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.avatar:hover {
+  border-color: var(--color-primary);
+  transform: scale(1.03);
+}
+
+.avatarOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  font-size: 11px;
+  font-weight: bold;
+  gap: 4px;
+  border-radius: 50%;
+}
+
+.avatar:hover .avatarOverlay {
+  opacity: 1;
+}
+
+.uploadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 5;
+  border-radius: 50%;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .avatarImg {
   object-fit: cover;
+  border-radius: 50%;
 }
 
-.kicker {
-  color: var(--color-primary);
-  font-size: 13px;
-  font-weight: 800;
-  text-transform: uppercase;
-}
-
-.header h1 {
-  margin: 2px 0;
-  color: var(--color-text-primary);
-  font-size: 30px;
-  line-height: 1.15;
-}
-
-.header p:last-child {
-  color: var(--color-text-secondary);
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.panel {
-  min-height: 110px;
-  display: grid;
-  align-content: center;
+.settingsBtn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
   gap: 8px;
-  padding: 18px;
+  padding: 10px 18px;
+  background: var(--color-bg-body);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
-  background: var(--color-bg-card);
-}
-
-.panel span {
-  color: var(--color-text-muted);
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.panel strong {
+  border-radius: 10px;
   color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settingsBtn:hover {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: translateY(-1px);
+}
+
+.settingsBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.headerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.headerInfo h2 {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.welcomeText {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.statsCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-bg-card);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.statsCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+}
+
+.statsNum {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-primary);
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.statsLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+.badgesSection {
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-bg-card);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.sectionTitle {
   font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 0 0 20px 0;
+}
+
+.badgesGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.badgeCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 16px;
+  border-radius: 14px;
+  transition: transform 0.2s ease;
+}
+
+.badgeCard:hover {
+  transform: translateY(-2px);
+}
+
+.badgeIconWrapper {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
+}
+
+.beginnerBg {
+  background: radial-gradient(circle, #f5f3ff 0%, #ede9fe 100%);
+  border: 1px solid #ddd6fe;
+}
+
+.listeningBg {
+  background: radial-gradient(circle, #fff7ed 0%, #ffedd5 100%);
+  border: 1px solid #fed7aa;
+}
+
+.loveBg {
+  background: radial-gradient(circle, #fdf4ff 0%, #fae8ff 100%);
+  border: 1px solid #f5d0fe;
+}
+
+.musicBg {
+  background: radial-gradient(circle, #fcf7ff 0%, #f3e8ff 100%);
+  border: 1px solid #e9d5ff;
+}
+
+.badgeImg {
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+
+.badgeCard:hover .badgeImg {
+  transform: scale(1.1) rotate(4deg);
+}
+
+.badgeName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
+}
+
+.badgeDesc {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
 }
 
 @media (max-width: 768px) {
   .header {
-    align-items: flex-start;
-    padding: 18px;
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
   }
 
-  .avatar {
-    width: 64px;
-    height: 64px;
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 
-  .header h1 {
-    font-size: 23px;
-  }
-
-  .grid {
-    grid-template-columns: 1fr;
+  .badgesGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
   }
 }

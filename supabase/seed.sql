@@ -78,7 +78,7 @@ insert into sounds (name, category, mood, duration, icon, image_url, audio_url, 
  'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?w=700&auto=format&fit=crop&q=80',
  'https://cdn.pixabay.com/download/audio/2022/03/10/audio_515949e29a.mp3?filename=rain-on-window-17482.mp3', 1),
 
-('Rừng cây xanh mát', 'Nhạc thiền', 'Rừng cây xanh mát', 'Dịu ngọt', 'forest',
+('Rừng cây xanh mát', 'Nhạc thiền', 'Dịu ngọt', '20 phút', 'forest',
  'https://images.unsplash.com/photo-1448375240586-882707db888b?w=700&auto=format&fit=crop&q=80',
  'https://cdn.pixabay.com/download/audio/2022/02/07/audio_f5904d6023.mp3?filename=forest-birds-6738.mp3', 2),
 
@@ -105,3 +105,13 @@ insert into sounds (name, category, mood, duration, icon, image_url, audio_url, 
 ('Lửa trại ấm áp', 'Thư giãn', 'Lửa trại ấm áp', '70 phút', 'fire',
  'https://images.unsplash.com/photo-1477160739634-171ff0343882?w=700&auto=format&fit=crop&q=80',
  'https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8c8a1670f.mp3?filename=campfire-16167.mp3', 8);
+
+-- ─── Community Moderation Terms ──────────────────────────────
+insert into community_moderation_terms (term, action) values
+('spam', 'block'),
+('scam', 'block'),
+('lừa đảo', 'block'),
+('tự tử', 'review'),
+('tự hại', 'review'),
+('muốn chết', 'review')
+on conflict (term, action) do nothing;

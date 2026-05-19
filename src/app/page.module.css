@@ -221,10 +221,16 @@
 
 .thumbnailWrapper {
   position: relative;
+  display: block;
   width: 100%;
   aspect-ratio: 16/9;
+  padding: 0;
+  border: 0;
   border-radius: var(--radius-md);
+  background: var(--color-primary-soft);
+  cursor: pointer;
   overflow: hidden;
+  text-align: left;
 }
 
 .thumbnail {
@@ -242,6 +248,7 @@
   position: absolute;
   bottom: 12px;
   right: 12px;
+  z-index: 2;
   width: 36px;
   height: 36px;
   background-color: var(--color-bg-card);
