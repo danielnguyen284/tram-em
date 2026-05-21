@@ -42,11 +42,20 @@ export async function saveProduct(formData: FormData) {
   const supabase = createAdminSupabaseClient();
   const id = optionalString(formData.get('id'));
   const name = String(formData.get('name') ?? '').trim();
+  const categoryId = optionalString(formData.get('category_id'));
+  const { data: category } = categoryId
+    ? await supabase
+        .from('product_categories')
+        .select('id, name')
+        .eq('id', categoryId)
+        .single()
+    : { data: null };
 
   const payload = {
     slug: optionalString(formData.get('slug')) ?? slugify(name),
     name,
-    category: String(formData.get('category') ?? '').trim(),
+    category_id: category?.id ?? null,
+    category: category?.name ?? String(formData.get('category') ?? '').trim(),
     price: numberValue(formData.get('price')),
     old_price: optionalString(formData.get('old_price')) ? numberValue(formData.get('old_price')) : null,
     description: String(formData.get('description') ?? '').trim(),
@@ -54,7 +63,6 @@ export async function saveProduct(formData: FormData) {
     images: listFromLines(formData.get('images')),
     tags: listFromComma(formData.get('tags')),
     stock: numberValue(formData.get('stock')),
-    rating: numberValue(formData.get('rating')),
     is_active: formData.get('is_active') === 'on',
     updated_at: new Date().toISOString(),
   };
@@ -68,6 +76,7 @@ export async function saveProduct(formData: FormData) {
   revalidatePath('/admin');
   revalidatePath('/admin/shop');
   revalidatePath('/shop');
+  revalidatePath('/shop/[slug]', 'page');
 }
 
 export async function toggleProductActive(formData: FormData) {
@@ -83,6 +92,55 @@ export async function toggleProductActive(formData: FormData) {
 
   revalidatePath('/admin/shop');
   revalidatePath('/shop');
+  revalidatePath('/shop/[slug]', 'page');
+}
+
+export async function saveProductCategory(formData: FormData) {
+  await requireAdmin();
+  const supabase = createAdminSupabaseClient();
+  const id = optionalString(formData.get('id'));
+  const name = String(formData.get('name') ?? '').trim();
+
+  if (!name) return;
+
+  const payload = {
+    slug: optionalString(formData.get('slug')) ?? slugify(name),
+    name,
+    sort_order: numberValue(formData.get('sort_order')),
+    is_active: formData.get('is_active') === 'on',
+    updated_at: new Date().toISOString(),
+  };
+
+  if (id) {
+    await supabase.from('product_categories').update(payload).eq('id', id);
+    await supabase
+      .from('products')
+      .update({ category: name, updated_at: new Date().toISOString() })
+      .eq('category_id', id);
+  } else {
+    await supabase.from('product_categories').insert(payload);
+  }
+
+  revalidatePath('/admin');
+  revalidatePath('/admin/shop');
+  revalidatePath('/shop');
+  revalidatePath('/shop/[slug]', 'page');
+}
+
+export async function toggleProductCategoryActive(formData: FormData) {
+  await requireAdmin();
+  const supabase = createAdminSupabaseClient();
+  const id = String(formData.get('id'));
+  const isActive = formData.get('is_active') === 'true';
+
+  await supabase
+    .from('product_categories')
+    .update({ is_active: !isActive, updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  revalidatePath('/admin/shop');
+  revalidatePath('/shop');
+  revalidatePath('/shop/[slug]', 'page');
 }
 
 export async function saveSound(formData: FormData) {

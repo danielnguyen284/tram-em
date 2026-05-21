@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-labelledby="title desc">
+  <title id="title">2048 game thumbnail</title>
+  <desc id="desc">A calm 2048 number board preview.</desc>
+  <rect width="640" height="640" rx="36" fill="#f7f4f1"/>
+  <rect x="78" y="78" width="484" height="484" rx="28" fill="#b7a492"/>
+  <g font-family="Arial, sans-serif" font-weight="800" text-anchor="middle" dominant-baseline="central">
+    <rect x="106" y="106" width="96" height="96" rx="14" fill="#eee4da"/>
+    <text x="154" y="154" font-size="38" fill="#776e65">2</text>
+    <rect x="214" y="106" width="96" height="96" rx="14" fill="#ede0c8"/>
+    <text x="262" y="154" font-size="38" fill="#776e65">4</text>
+    <rect x="322" y="106" width="96" height="96" rx="14" fill="#f2b179"/>
+    <text x="370" y="154" font-size="34" fill="#ffffff">8</text>
+    <rect x="430" y="106" width="96" height="96" rx="14" fill="#f59563"/>
+    <text x="478" y="154" font-size="30" fill="#ffffff">16</text>
+    <rect x="106" y="214" width="96" height="96" rx="14" fill="#f67c5f"/>
+    <text x="154" y="262" font-size="30" fill="#ffffff">32</text>
+    <rect x="214" y="214" width="96" height="96" rx="14" fill="#f65e3b"/>
+    <text x="262" y="262" font-size="30" fill="#ffffff">64</text>
+    <rect x="322" y="214" width="96" height="96" rx="14" fill="#edcf72"/>
+    <text x="370" y="262" font-size="26" fill="#ffffff">128</text>
+    <rect x="430" y="214" width="96" height="96" rx="14" fill="#edcc61"/>
+    <text x="478" y="262" font-size="26" fill="#ffffff">256</text>
+    <rect x="106" y="322" width="96" height="96" rx="14" fill="#edc850"/>
+    <text x="154" y="370" font-size="26" fill="#ffffff">512</text>
+    <rect x="214" y="322" width="96" height="96" rx="14" fill="#edc53f"/>
+    <text x="262" y="370" font-size="23" fill="#ffffff">1024</text>
+    <rect x="322" y="322" width="204" height="204" rx="18" fill="#edc22e"/>
+    <text x="424" y="424" font-size="48" fill="#ffffff">2048</text>
+    <rect x="106" y="430" width="96" height="96" rx="14" fill="#cdc1b4"/>
+    <rect x="214" y="430" width="96" height="96" rx="14" fill="#cdc1b4"/>
+  </g>
+</svg>

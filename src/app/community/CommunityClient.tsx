@@ -3,8 +3,9 @@
 import type { Comment, PopularTag, Post } from '@/types/database';
 import { timeAgo } from '@/utils/format';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Heart, MessageCircle, Repeat2, MoreHorizontal, Image as ImageIcon, Smile, Send, X, Loader2 } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Image as ImageIcon, Smile, Send, X, Loader2, ArrowLeft, Share2 } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import styles from './community.module.css';
 import {
   loadCommunityPosts,
@@ -12,6 +13,7 @@ import {
   saveCommunityPost,
   savePostComment,
   toggleCommunityLike,
+  toggleCommunityCommentLike,
 } from './actions';
 
 type CurrentUser = {
@@ -25,6 +27,7 @@ type Props = {
   currentUser: CurrentUser;
   initialPopularTags: PopularTag[];
   initialHasMore: boolean;
+  isSinglePostView?: boolean;
 };
 
 const FALLBACK_TAGS = ['ChuaLanh', 'TamSu', 'YeuBanThan', 'NhipTho', 'ASMR', 'BinhYen'];
@@ -36,9 +39,17 @@ const POPULAR_EMOJIS = [
 ];
 
 function Avatar({ src, size = 40 }: { src: string; size?: number }) {
+  const isExternal = src.startsWith('http');
   return (
     <div className={styles.avatar} style={{ width: size, height: size }}>
-      <Image src={src} alt="avatar" fill className={styles.avatarImg} />
+      <Image
+        src={src}
+        alt="avatar"
+        fill
+        sizes={`${size}px`}
+        unoptimized={isExternal}
+        className={styles.avatarImg}
+      />
     </div>
   );
 }
@@ -64,11 +75,15 @@ function PostCard({
   currentUser,
   onLike,
   onCommentSaved,
+  autoExpandComments = false,
+  highlightedCommentId = null,
 }: {
   post: Post;
   currentUser: CurrentUser;
   onLike: (id: string) => void;
   onCommentSaved: (id: string) => void;
+  autoExpandComments?: boolean;
+  highlightedCommentId?: string | null;
 }) {
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -78,8 +93,14 @@ function PostCard({
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [commentError, setCommentError] = useState<string | null>(null);
+  const [showShareToast, setShowShareToast] = useState(false);
+
   const authorName = post.author?.display_name ?? 'Ẩn danh';
-  const authorAvatar = post.author?.avatar_url ?? `https://i.pravatar.cc/150?u=${post.author_id}`;
+  const fallbackAvatar =
+    post.author?.gender === 'female'
+      ? '/images/avatar-default-female.png'
+      : '/images/avatar-default-male.png';
+  const authorAvatar = post.author?.avatar_url || fallbackAvatar;
 
   const loadComments = async () => {
     if (hasLoadedComments || isLoadingComments) return;
@@ -97,10 +118,65 @@ function PostCard({
     }
   };
 
+  useEffect(() => {
+    if (autoExpandComments || highlightedCommentId) {
+      setShowComments(true);
+      void loadComments();
+    }
+  }, [autoExpandComments, highlightedCommentId]);
+
   const toggleComments = () => {
     setShowComments((value) => !value);
     if (!showComments) {
       void loadComments();
+    }
+  };
+
+  const handleShare = () => {
+    const postUrl = `${window.location.origin}/community/post/${post.id}`;
+    void navigator.clipboard.writeText(postUrl);
+    setShowShareToast(true);
+    setTimeout(() => setShowShareToast(false), 2000);
+  };
+
+  const handleLikeComment = async (commentId: string) => {
+    if (!currentUser) return;
+
+    // Optimistic update
+    setComments((prev) =>
+      prev.map((c) => {
+        if (c.id === commentId) {
+          const nextLiked = !c.liked_by_user;
+          const nextCount = (c.likes_count ?? 0) + (nextLiked ? 1 : -1);
+          return {
+            ...c,
+            liked_by_user: nextLiked,
+            likes_count: nextCount,
+          };
+        }
+        return c;
+      })
+    );
+
+    try {
+      await toggleCommunityCommentLike(commentId);
+    } catch (err) {
+      console.warn('Failed to like comment:', err);
+      // Revert on error
+      setComments((prev) =>
+        prev.map((c) => {
+          if (c.id === commentId) {
+            const nextLiked = !c.liked_by_user;
+            const nextCount = (c.likes_count ?? 0) + (nextLiked ? 1 : -1);
+            return {
+              ...c,
+              liked_by_user: nextLiked,
+              likes_count: nextCount,
+            };
+          }
+          return c;
+        })
+      );
     }
   };
 
@@ -112,7 +188,7 @@ function PostCard({
 
     try {
       const saved = await savePostComment(post.id, content, parentId);
-      setComments((prev) => [...prev, saved]);
+      setComments((prev) => [...prev, { ...saved, liked_by_user: false, likes_count: 0 }]);
       onCommentSaved(post.id);
 
       if (parentId) {
@@ -136,10 +212,19 @@ function PostCard({
 
   const renderComment = (comment: Comment, isReply = false) => {
     const commentAuthor = comment.author?.display_name ?? 'Ẩn danh';
-    const commentAvatar = comment.author?.avatar_url ?? `https://i.pravatar.cc/150?u=${comment.author_id}`;
+    const commentFallbackAvatar =
+      comment.author?.gender === 'female'
+        ? '/images/avatar-default-female.png'
+        : '/images/avatar-default-male.png';
+    const commentAvatar = comment.author?.avatar_url || commentFallbackAvatar;
+    const isHighlighted = highlightedCommentId === comment.id;
 
     return (
-      <div key={comment.id} className={`${styles.comment} ${isReply ? styles.replyComment : ''}`}>
+      <div
+        key={comment.id}
+        id={`comment-${comment.id}`}
+        className={`${styles.comment} ${isReply ? styles.replyComment : ''} ${isHighlighted ? styles.highlightedComment : ''}`}
+      >
         <Avatar src={commentAvatar} size={isReply ? 26 : 30} />
         <div className={styles.commentWrap}>
           <div className={styles.commentBody}>
@@ -153,16 +238,32 @@ function PostCard({
                 Trả lời
               </button>
             )}
+            {currentUser && (
+              <button
+                type="button"
+                onClick={() => handleLikeComment(comment.id)}
+                className={`${styles.commentLikeBtn} ${comment.liked_by_user ? styles.commentLiked : ''}`}
+              >
+                <Heart size={12} fill={comment.liked_by_user ? 'currentColor' : 'none'} />
+                <span>{comment.likes_count ?? 0}</span>
+              </button>
+            )}
           </div>
           {replyTo === comment.id && currentUser && (
             <div className={styles.replyInput}>
               <Avatar src={currentUser.avatar} size={24} />
-              <input
+              <textarea
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
                 placeholder={`Trả lời ${commentAuthor}...`}
                 className={styles.commentField}
-                onKeyDown={(e) => e.key === 'Enter' && submitComment(comment.id)}
+                rows={1}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void submitComment(comment.id);
+                  }
+                }}
               />
               <button className={styles.sendBtn} onClick={() => submitComment(comment.id)}>
                 <Send size={15} />
@@ -209,9 +310,9 @@ function PostCard({
           <MessageCircle size={18} />
           <span>{post.comments_count ?? 0}</span>
         </button>
-        <button className={styles.actionBtn}>
-          <Repeat2 size={18} />
-          <span>{post.reposts_count}</span>
+        <button className={styles.actionBtn} onClick={handleShare} title="Sao chép liên kết bài viết">
+          <Share2 size={18} />
+          <span>Chia sẻ</span>
         </button>
       </div>
 
@@ -227,12 +328,18 @@ function PostCard({
           {currentUser ? (
             <div className={styles.commentInput}>
               <Avatar src={currentUser.avatar} size={30} />
-              <input
+              <textarea
                 value={commentText}
                 onChange={e => setCommentText(e.target.value)}
                 placeholder="Viết bình luận..."
                 className={styles.commentField}
-                onKeyDown={e => e.key === 'Enter' && submitComment()}
+                rows={1}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    void submitComment();
+                  }
+                }}
               />
               <button className={styles.sendBtn} onClick={() => submitComment()}>
                 <Send size={16} />
@@ -243,11 +350,23 @@ function PostCard({
           )}
         </div>
       )}
+
+      {showShareToast && (
+        <div className={styles.shareToast}>
+          Đã sao chép liên kết chia sẻ!
+        </div>
+      )}
     </article>
   );
 }
 
-export default function CommunityClient({ initialPosts, currentUser, initialPopularTags, initialHasMore }: Props) {
+export default function CommunityClient({
+  initialPosts,
+  currentUser,
+  initialPopularTags,
+  initialHasMore,
+  isSinglePostView = false,
+}: Props) {
   const [posts, setPosts] = useState(initialPosts);
   const [draft, setDraft] = useState('');
   const [activeTag, setActiveTag] = useState('Tất cả');
@@ -257,21 +376,43 @@ export default function CommunityClient({ initialPosts, currentUser, initialPopu
   const [isTagLoading, setIsTagLoading] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [moderationNotice, setModerationNotice] = useState<string | null>(null);
-  
+  const [highlightedCommentId, setHighlightedCommentId] = useState<string | null>(null);
+
   // Image Uploading States
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
-  
+
   // Emoji Picker State
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const tagList = initialPopularTags.length > 0 ? initialPopularTags.map((tag) => tag.tag) : FALLBACK_TAGS;
   const topicTags = ['Tất cả', ...tagList];
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#comment-')) {
+        const commentId = hash.replace('#comment-', '');
+        setHighlightedCommentId(commentId);
+        // Scroll target comment into view smoothly
+        setTimeout(() => {
+          const el = document.getElementById(`comment-${commentId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 800);
+      }
+    };
+
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
 
   const handleEmojiClick = (emoji: string) => {
     setDraft(prev => prev + emoji);
@@ -311,7 +452,7 @@ export default function CommunityClient({ initialPosts, currentUser, initialPopu
   };
 
   const loadMorePosts = useCallback(async () => {
-    if (isLoadingMore || isTagLoading || !hasMore) return;
+    if (isLoadingMore || isTagLoading || !hasMore || isSinglePostView) return;
     setIsLoadingMore(true);
 
     try {
@@ -322,9 +463,10 @@ export default function CommunityClient({ initialPosts, currentUser, initialPopu
     } finally {
       setIsLoadingMore(false);
     }
-  }, [activeTag, hasMore, isLoadingMore, isTagLoading, nextOffset]);
+  }, [activeTag, hasMore, isLoadingMore, isTagLoading, nextOffset, isSinglePostView]);
 
   const handleTagSelect = async (tag: string) => {
+    if (isSinglePostView) return;
     if (tag === activeTag && posts.length > 0) return;
 
     setActiveTag(tag);
@@ -444,7 +586,7 @@ export default function CommunityClient({ initialPosts, currentUser, initialPopu
 
   useEffect(() => {
     const target = loadMoreRef.current;
-    if (!target || !hasMore) return;
+    if (!target || !hasMore || isSinglePostView) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -457,13 +599,24 @@ export default function CommunityClient({ initialPosts, currentUser, initialPopu
 
     observer.observe(target);
     return () => observer.disconnect();
-  }, [hasMore, loadMorePosts]);
+  }, [hasMore, loadMorePosts, isSinglePostView]);
 
   return (
-    <div className={styles.layout}>
+    <div className={`${styles.layout} ${isSinglePostView ? styles.singlePostLayout : ''}`}>
       <main className={styles.feed}>
+
+        {/* Back Link */}
+        {isSinglePostView && (
+          <div className={styles.backHeader}>
+            <Link href="/community" className={styles.backLink}>
+              <ArrowLeft size={16} />
+              <span>Quay lại Cộng đồng</span>
+            </Link>
+          </div>
+        )}
+
         {/* Compose */}
-        {currentUser && (
+        {!isSinglePostView && currentUser && (
           <div className={styles.compose}>
             <Avatar src={currentUser.avatar} size={42} />
             <div className={styles.composeRight}>
@@ -568,17 +721,19 @@ export default function CommunityClient({ initialPosts, currentUser, initialPopu
         )}
 
         {/* Filter tags */}
-        <div className={styles.tagFilter}>
-          {topicTags.map(t => (
-            <button
-              key={t}
-              className={`${styles.tagBtn} ${activeTag === t ? styles.tagActive : ''}`}
-              onClick={() => handleTagSelect(t)}
-            >
-              #{t}
-            </button>
-          ))}
-        </div>
+        {!isSinglePostView && (
+          <div className={styles.tagFilter}>
+            {topicTags.map(t => (
+              <button
+                key={t}
+                className={`${styles.tagBtn} ${activeTag === t ? styles.tagActive : ''}`}
+                onClick={() => handleTagSelect(t)}
+              >
+                #{t}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Posts */}
         <div className={styles.posts}>
@@ -590,15 +745,17 @@ export default function CommunityClient({ initialPosts, currentUser, initialPopu
               currentUser={currentUser}
               onLike={handleLike}
               onCommentSaved={handleCommentSaved}
+              autoExpandComments={isSinglePostView}
+              highlightedCommentId={highlightedCommentId}
             />
           ))}
           {!isTagLoading && posts.length === 0 && (
             <p className={styles.feedState}>
-              Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ!
+              {isSinglePostView ? 'Không tìm thấy bài viết này.' : 'Chưa có bài viết nào. Hãy là người đầu tiên chia sẻ!'}
             </p>
           )}
-          <div ref={loadMoreRef} className={styles.loadMoreSentinel} />
-          {!isTagLoading && hasMore && (
+          {!isSinglePostView && <div ref={loadMoreRef} className={styles.loadMoreSentinel} />}
+          {!isSinglePostView && !isTagLoading && hasMore && (
             <button className={styles.loadMoreBtn} onClick={loadMorePosts} disabled={isLoadingMore}>
               {isLoadingMore ? 'Đang tải...' : 'Tải thêm'}
             </button>
@@ -606,23 +763,25 @@ export default function CommunityClient({ initialPosts, currentUser, initialPopu
         </div>
       </main>
 
-      {/* Sidebar */}
-      <aside className={styles.sidebar}>
-        <div className={styles.sideCard}>
-          <h3 className={styles.sideTitle}>Hashtag phổ biến</h3>
-          <div className={styles.hashtagList}>
-            {tagList.map(tag => (
-              <button
-                key={tag}
-                className={styles.hashtagPill}
-                onClick={() => handleTagSelect(tag)}
-              >
-                #{tag}
-              </button>
-            ))}
+      {/* Sidebar — hashtags (feed only) */}
+      {!isSinglePostView && (
+        <aside className={styles.sidebar}>
+          <div className={styles.sideCard}>
+            <h3 className={styles.sideTitle}>Hashtag phổ biến</h3>
+            <div className={styles.hashtagList}>
+              {tagList.map(tag => (
+                <button
+                  key={tag}
+                  className={styles.hashtagPill}
+                  onClick={() => handleTagSelect(tag)}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </aside>
+        </aside>
+      )}
     </div>
   );
 }

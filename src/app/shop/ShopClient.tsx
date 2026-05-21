@@ -3,7 +3,8 @@
 import type { Product } from '@/types/database';
 import { formatVnd } from '@/utils/format';
 import { useCartStore } from '@/store/useCartStore';
-import { Heart, ShoppingBag, ShoppingCart, SlidersHorizontal, Star } from 'lucide-react';
+import { animateFlyToCart } from '@/utils/animations';
+import { Heart, ShoppingBag, ShoppingCart, SlidersHorizontal } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
@@ -30,10 +31,6 @@ function ProductCard({ product }: { product: Product }) {
       <div className={styles.cardBody}>
         <div className={styles.cardMeta}>
           <span>{product.category}</span>
-          <span className={styles.rating}>
-            <Star size={14} fill="currentColor" />
-            {product.rating}
-          </span>
         </div>
         <Link href={`/shop/${product.slug}`} className={styles.productName}>
           {product.name}
@@ -53,20 +50,25 @@ function ProductCard({ product }: { product: Product }) {
           </div>
           <button
             type="button"
-            onClick={() => addItem({
-              id: product.id,
-              slug: product.slug,
-              name: product.name,
-              category: product.category,
-              price: product.price,
-              oldPrice: product.old_price ?? undefined,
-              description: product.description,
-              details: product.details,
-              images: product.images,
-              tags: product.tags,
-              stock: product.stock,
-              rating: product.rating,
-            })}
+            onClick={(e) => {
+              const card = e.currentTarget.closest('article');
+              const img = card?.querySelector('img') as HTMLImageElement;
+              animateFlyToCart(img);
+              
+              addItem({
+                id: product.id,
+                slug: product.slug,
+                name: product.name,
+                category: product.category,
+                price: product.price,
+                oldPrice: product.old_price ?? undefined,
+                description: product.description,
+                details: product.details,
+                images: product.images,
+                tags: product.tags,
+                stock: product.stock,
+              });
+            }}
             aria-label={`Thêm ${product.name} vào giỏ`}
           >
             <ShoppingCart size={18} />

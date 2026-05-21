@@ -2,24 +2,17 @@
 
 import type { ChatThread, ChatMessage } from '@/types/database';
 import {
-  Bot,
   Clock3,
   Heart,
   MessageCircle,
   Plus,
   Send,
   Trash2,
-  X,
 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import Image from 'next/image';
 import styles from './ai.module.css';
-
-const TOPICS = [
-  'Hỏi đáp về sức khỏe tâm lý',
-  'Trò chuyện ẩn danh',
-  'Trò chuyện trước khi ngủ',
-];
 
 const PROMPTS = [
   'Mình muốn lắng nghe',
@@ -27,8 +20,12 @@ const PROMPTS = [
   'Mình muốn được an ủi',
 ];
 
-function makeReply(input: string) {
+function makeFallbackReply(input: string) {
   const lower = input.toLowerCase();
+
+  if (lower.includes('bỏ') || lower.includes('chia tay') || lower.includes('người yêu')) {
+    return 'Nghe như chuyện này đang chạm vào cảm giác mất mát và bị bỏ lại, nên buồn nhiều là điều rất dễ hiểu. Lúc này bạn không cần phải mạnh ngay; thử để mình ở cạnh cảm giác đó một chút, rồi kể mình nghe phần đau nhất là nhớ họ, hụt hẫng, hay thấy mình không đủ tốt?';
+  }
 
   if (lower.includes('ngủ') || lower.includes('mệt')) {
     return 'Mình nghe thấy có vẻ cơ thể và tâm trí bạn đang cần được nghỉ. Thử đặt tên cho cảm giác đó trước, rồi mình cùng bạn chọn một việc nhỏ để nhẹ hơn.';
@@ -38,14 +35,33 @@ function makeReply(input: string) {
     return 'Cảm giác lo lắng thường lớn hơn khi mình giữ một mình. Bạn có muốn kể điều đang làm bạn áp lực nhất ngay lúc này không?';
   }
 
-  return 'Mình đang lắng nghe bạn. Hãy kể thêm một chút về chuyện đó, hoặc chọn một hướng bên dưới để mình đồng hành tiếp.';
+  return `Mình nghe thấy điều bạn vừa nói: "${input.slice(0, 80)}". Có vẻ cảm xúc trong đó đang khá nặng, mình sẽ ở đây để nghe bạn nói chậm lại từng chút một.`;
 }
 
-function timeLabel() {
-  return new Intl.DateTimeFormat('vi-VN', {
+function formatThreadTimestamp(value: string) {
+  const date = new Date(value);
+  const time = new Intl.DateTimeFormat('vi-VN', {
     hour: '2-digit',
     minute: '2-digit',
-  }).format(new Date());
+  }).format(date);
+  const day = new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(date);
+
+  return `${time} · ${day}`;
+}
+
+type AiChatResponse = {
+  reply?: string;
+  error?: string;
+};
+
+function sleep(ms: number) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 }
 
 type Props = {
@@ -66,6 +82,7 @@ export default function AiClient({
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState('');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const supabase = createClient();
 
@@ -73,6 +90,8 @@ export default function AiClient({
     () => threads.find((t) => t.id === activeThreadId) ?? threads[0] ?? null,
     [activeThreadId, threads],
   );
+  const hasUserMessage = messages.some((message) => message.role === 'user');
+  const canStartNewThread = (!activeThread || hasUserMessage) && !isSending;
 
   // Load messages when switching threads
   useEffect(() => {
@@ -96,55 +115,122 @@ export default function AiClient({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const text = draft.trim();
-    if (!text || !activeThread || !isAuthenticated) return;
+  const sendMessage = async (input: string) => {
+    const text = input.trim();
+    if (!text || !isAuthenticated || !userId || isSending) return;
 
-    const now = new Date().toISOString();
+    setIsSending(true);
 
-    // Optimistic user message
-    const userMsg: ChatMessage = {
-      id: `temp-user-${Date.now()}`,
-      thread_id: activeThread.id,
-      role: 'user',
-      content: text,
-      created_at: now,
-    };
+    try {
+      let targetThread = activeThread;
+      const now = new Date().toISOString();
+      const isFirstUserMessage = !targetThread || !messages.some((message) => message.role === 'user');
 
-    const replyText = makeReply(text);
-    const assistantMsg: ChatMessage = {
-      id: `temp-assistant-${Date.now()}`,
-      thread_id: activeThread.id,
-      role: 'assistant',
-      content: replyText,
-      created_at: now,
-    };
+      if (!targetThread) {
+        const { data } = await supabase
+          .from('chat_threads')
+          .insert({
+            user_id: userId,
+            title: text.slice(0, 34),
+            topic: 'Em AI luôn ở đây',
+          })
+          .select()
+          .single();
 
-    setMessages((prev) => [...prev, userMsg, assistantMsg]);
-    setDraft('');
+        if (!data) return;
 
-    // Persist to DB
-    await supabase.from('chat_messages').insert([
-      { thread_id: activeThread.id, role: 'user', content: text },
-      { thread_id: activeThread.id, role: 'assistant', content: replyText },
-    ]);
+        targetThread = data;
+        setThreads((prev) => [data, ...prev]);
+      }
 
-    // Update thread title if first user message
-    if (messages.length <= 1) {
-      const title = text.slice(0, 34);
+      const history = messages
+          .filter((message) => message.content.trim())
+          // Load the full conversation history to provide context for the AI
+          .map((message) => ({
+            role: message.role,
+            content: message.content,
+          }));
+
+      const userMsg: ChatMessage = {
+        id: `temp-user-${now}`,
+        thread_id: targetThread.id,
+        role: 'user',
+        content: text,
+        created_at: now,
+      };
+
+      const assistantMsg: ChatMessage = {
+        id: `temp-assistant-${now}`,
+        thread_id: targetThread.id,
+        role: 'assistant',
+        content: '',
+        created_at: now,
+      };
+
+      setMessages((prev) => [...prev, userMsg, assistantMsg]);
+      setDraft('');
+
+      let replyText = makeFallbackReply(text);
+
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as AiChatResponse;
+      if (!response.ok) {
+        console.error('AI chat API error:', payload.error ?? response.statusText);
+      }
+      replyText = payload.reply?.trim() || replyText;
+
+      const revealStep = replyText.length > 100 ? 3 : 2;
+      for (let index = revealStep; index < replyText.length + revealStep; index += revealStep) {
+        await sleep(18);
+        const visibleReply = replyText.slice(0, index);
+        setMessages((prev) =>
+          prev.map((message) =>
+            message.id === assistantMsg.id ? { ...message, content: visibleReply } : message,
+          ),
+        );
+      }
+
+      const threadUpdatedAt = new Date().toISOString();
+
+      await supabase.from('chat_messages').insert([
+        { thread_id: targetThread.id, role: 'user', content: text },
+        { thread_id: targetThread.id, role: 'assistant', content: replyText },
+      ]);
+
+      const threadPatch = isFirstUserMessage
+        ? { title: text.slice(0, 34), updated_at: threadUpdatedAt }
+        : { updated_at: threadUpdatedAt };
+
       await supabase
         .from('chat_threads')
-        .update({ title, updated_at: now })
-        .eq('id', activeThread.id);
+        .update(threadPatch)
+        .eq('id', targetThread.id);
+
       setThreads((prev) =>
-        prev.map((t) => (t.id === activeThread.id ? { ...t, title, updated_at: now } : t)),
+        prev.map((thread) =>
+          thread.id === targetThread.id ? { ...thread, ...threadPatch } : thread,
+        ),
       );
+      setActiveThreadId(targetThread.id);
+    } catch (error) {
+      console.error('AI chat request failed:', error);
+    } finally {
+      setIsSending(false);
     }
   };
 
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await sendMessage(draft);
+  };
+
   const startNewThread = async () => {
-    if (!isAuthenticated || !userId) return;
+    if (!isAuthenticated || !userId || !canStartNewThread) return;
 
     const { data } = await supabase
       .from('chat_threads')
@@ -168,12 +254,14 @@ export default function AiClient({
 
     setThreads((prev) => [data, ...prev]);
     setActiveThreadId(data.id);
+    const welcomeCreatedAt = new Date().toISOString();
+
     setMessages([{
-      id: `welcome-${Date.now()}`,
+      id: `welcome-${welcomeCreatedAt}`,
       thread_id: data.id,
       role: 'assistant',
       content: welcomeText,
-      created_at: new Date().toISOString(),
+      created_at: welcomeCreatedAt,
     }]);
     setIsHistoryOpen(false);
   };
@@ -200,18 +288,11 @@ export default function AiClient({
           <main className={styles.chatPanel}>
             <div className={styles.botStage} aria-hidden="true">
               <div className={styles.botWrap}>
-                <div className={styles.botHead}>
-                  <span className={styles.botEye} />
-                  <span className={styles.botSmile} />
-                  <span className={styles.botEye} />
-                </div>
-                <div className={styles.botBody}>
-                  <Bot size={28} />
-                </div>
+                <Image src="/images/ai-mascot-transparent.png" alt="AI Mascot" fill sizes="(max-width: 820px) 180px, 280px" style={{ objectFit: 'contain' }} priority />
               </div>
             </div>
             <div className={styles.chatStack}>
-              <div className={styles.modeCard}>
+              <div className={styles.chatHeader}>
                 <Heart size={18} fill="currentColor" />
                 <div>
                   <strong>Em AI đồng hành</strong>
@@ -232,41 +313,39 @@ export default function AiClient({
 
   return (
     <section className={styles.page}>
+      <div className={styles.pageHeader}>
+        <Heart size={18} fill="currentColor" className={styles.pageHeaderIcon} />
+        <div>
+          <strong>{activeThread?.title ?? 'Em AI'}</strong>
+          <span>{activeThread?.topic ?? 'Chọn hoặc tạo cuộc trò chuyện mới'}</span>
+        </div>
+        <button
+          type="button"
+          className={styles.mobileHistoryButton}
+          onClick={() => setIsHistoryOpen(true)}
+          aria-label="Mở lịch sử chat"
+          aria-expanded={isHistoryOpen}
+        >
+          <MessageCircle size={18} />
+        </button>
+      </div>
+
       <div className={styles.workspace}>
-        <main className={styles.chatPanel}>
-          <div className={styles.botStage} aria-hidden="true">
-            <div className={styles.orbitDot} />
-            <div className={styles.botWrap}>
-              <div className={styles.botHead}>
-                <span className={styles.botEye} />
-                <span className={styles.botSmile} />
-                <span className={styles.botEye} />
-              </div>
-              <div className={styles.botBody}>
-                <Bot size={28} />
+        <main className={`${styles.chatPanel} ${hasUserMessage ? styles.chatPanelActive : ''}`}>
+          {!hasUserMessage && (
+            <div className={styles.botStage} aria-hidden="true">
+              <div className={styles.orbitDot} />
+              <div className={styles.botWrap}>
+                <Image src="/images/ai-mascot-transparent.png" alt="AI Mascot" fill sizes="(max-width: 820px) 180px, 280px" style={{ objectFit: 'contain' }} priority />
               </div>
             </div>
-          </div>
+          )}
 
           <div className={styles.chatStack}>
-            <div className={styles.modeCard}>
-              <Heart size={18} fill="currentColor" />
-              <div>
-                <strong>{activeThread?.title ?? 'Em AI'}</strong>
-                <span>{activeThread?.topic ?? 'Chọn hoặc tạo cuộc trò chuyện mới'}</span>
-              </div>
-              <button
-                type="button"
-                className={styles.mobileHistoryButton}
-                onClick={() => setIsHistoryOpen(true)}
-                aria-label="Mở lịch sử chat"
-                aria-expanded={isHistoryOpen}
-              >
-                <MessageCircle size={18} />
-              </button>
+            <div className={styles.chatHeaderPlaceholder}>
             </div>
 
-            <div className={styles.messages} aria-live="polite">
+            <div className={styles.messages} aria-live="polite" aria-busy={isSending}>
               {messages.map((message) => (
                 <article
                   key={message.id}
@@ -274,7 +353,15 @@ export default function AiClient({
                     message.role === 'user' ? styles.userMessage : styles.assistantMessage
                   }`}
                 >
-                  <p>{message.content}</p>
+                  {message.role === 'assistant' && !message.content ? (
+                    <p className={styles.typingIndicator} aria-label="Em AI đang soạn">
+                      <span />
+                      <span />
+                      <span />
+                    </p>
+                  ) : (
+                    <p>{message.content}</p>
+                  )}
                   <time>
                     {new Intl.DateTimeFormat('vi-VN', {
                       hour: '2-digit',
@@ -288,6 +375,22 @@ export default function AiClient({
                   <p>Tạo cuộc trò chuyện mới để bắt đầu nhé 💜</p>
                 </article>
               )}
+              
+              {!hasUserMessage && (
+                <div className={styles.promptRow}>
+                  {PROMPTS.map((prompt) => (
+                    <button
+                      type="button"
+                      key={prompt}
+                      onClick={() => void sendMessage(prompt)}
+                      disabled={isSending}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
               <div ref={messagesEndRef} />
             </div>
           </div>
@@ -312,31 +415,16 @@ export default function AiClient({
               <strong>{threads.length} cuộc trò chuyện</strong>
             </div>
             <div className={styles.historyActions}>
-              <button type="button" className={styles.iconButton} onClick={startNewThread} aria-label="Tạo chat mới">
+              <button
+                type="button"
+                className={styles.iconButton}
+                onClick={startNewThread}
+                aria-label="Tạo chat mới"
+                disabled={!canStartNewThread}
+              >
                 <Plus size={18} />
               </button>
-              <button
-                type="button"
-                className={`${styles.iconButton} ${styles.closeHistoryButton}`}
-                onClick={() => setIsHistoryOpen(false)}
-                aria-label="Đóng lịch sử chat"
-              >
-                <X size={18} />
-              </button>
             </div>
-          </div>
-
-          <div className={styles.topicList}>
-            {TOPICS.map((topic) => (
-              <button
-                type="button"
-                key={topic}
-                className={styles.topicButton}
-                onClick={() => setDraft(topic)}
-              >
-                {topic}
-              </button>
-            ))}
           </div>
 
           <div className={styles.threadList}>
@@ -354,10 +442,7 @@ export default function AiClient({
                   <strong>{thread.title}</strong>
                   <small>
                     <Clock3 size={12} />
-                    {new Intl.DateTimeFormat('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }).format(new Date(thread.updated_at))}
+                    {formatThreadTimestamp(thread.updated_at)}
                   </small>
                 </span>
               </button>
@@ -371,25 +456,21 @@ export default function AiClient({
         </aside>
       </div>
 
-      <div className={styles.promptRow}>
-        {PROMPTS.map((prompt) => (
-          <button type="button" key={prompt} onClick={() => setDraft(prompt)}>
-            {prompt}
-          </button>
-        ))}
-      </div>
 
-      <form className={styles.composer} onSubmit={handleSubmit}>
-        <input
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          placeholder="Nhắn cho Em AI..."
-          aria-label="Tin nhắn cho Em AI"
-        />
-        <button type="submit" aria-label="Gửi tin nhắn" disabled={!draft.trim()}>
-          <Send size={20} />
-        </button>
-      </form>
+      <div className={styles.composerRow}>
+        <form className={styles.composer} onSubmit={handleSubmit}>
+          <input
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="Nhắn cho Em AI..."
+            aria-label="Tin nhắn cho Em AI"
+            disabled={isSending}
+          />
+          <button type="submit" aria-label="Gửi tin nhắn" disabled={!draft.trim() || isSending}>
+            <Send size={20} />
+          </button>
+        </form>
+      </div>
     </section>
   );
 }

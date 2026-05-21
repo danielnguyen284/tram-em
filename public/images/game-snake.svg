@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-labelledby="title desc">
+  <title id="title">Snake game thumbnail</title>
+  <desc id="desc">A snake moving through a soft grid toward an apple.</desc>
+  <rect width="640" height="640" rx="36" fill="#edf7f0"/>
+  <g stroke="#d3e6d8" stroke-width="3">
+    <path d="M80 160h480M80 240h480M80 320h480M80 400h480M80 480h480"/>
+    <path d="M160 80v480M240 80v480M320 80v480M400 80v480M480 80v480"/>
+  </g>
+  <g fill="#70b789">
+    <rect x="160" y="320" width="80" height="80" rx="20"/>
+    <rect x="240" y="320" width="80" height="80" rx="20"/>
+    <rect x="320" y="320" width="80" height="80" rx="20"/>
+    <rect x="400" y="240" width="80" height="80" rx="20"/>
+    <rect x="400" y="160" width="80" height="80" rx="20"/>
+  </g>
+  <rect x="400" y="160" width="80" height="80" rx="22" fill="#4b9466"/>
+  <circle cx="430" cy="190" r="7" fill="#ffffff"/>
+  <circle cx="458" cy="190" r="7" fill="#ffffff"/>
+  <circle cx="190" cy="190" r="34" fill="#ef6b5b"/>
+  <path d="M190 150c14-20 34-28 58-22" fill="none" stroke="#5f9f6d" stroke-width="12" stroke-linecap="round"/>
+  <path d="M194 187c8-5 16-5 24 0" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" opacity=".65"/>
+</svg>

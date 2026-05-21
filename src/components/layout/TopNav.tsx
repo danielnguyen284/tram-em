@@ -2,7 +2,9 @@
 
 import { signOut } from '@/app/login/actions';
 import CartPopover from '@/components/shop/CartPopover';
+import CheckoutModal from '@/components/shop/CheckoutModal';
 import { useCartStore } from '@/store/useCartStore';
+import { useUIStore } from '@/store/useUIStore';
 import { createClient } from '@/utils/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import {
@@ -45,9 +47,16 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profile, setProfile] = useState<ProfileState | null>(null);
   const [cartOpen, setCartOpen] = useState(false);
+  const { isCheckoutOpen, openCheckout, closeCheckout } = useUIStore();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+
   const cartRef = useRef<HTMLDivElement | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
+  const notifRef = useRef<HTMLDivElement | null>(null);
+
   const supabase = useMemo(() => createClient(), []);
   const cartCount = useCartStore((state) =>
     state.items.reduce((total, item) => total + item.quantity, 0),
@@ -62,6 +71,7 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
 
       if (!user) {
         setProfile(null);
+        setNotifications([]);
         return;
       }
 
@@ -72,10 +82,48 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
         .maybeSingle();
 
       setProfile((profile as ProfileState | null) ?? null);
+
+      const { data: notifs } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      setNotifications(notifs ?? []);
     };
 
     getUser();
   }, [supabase]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('realtime_notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+            .then(({ data }) => {
+              if (data) setNotifications(data);
+            });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, supabase]);
 
   useEffect(() => {
     queueMicrotask(() => {
@@ -85,6 +133,11 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
         theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches);
       setIsDark(isDarkMode);
     });
+
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   useEffect(() => {
@@ -102,12 +155,17 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
       if (!profileRef.current?.contains(event.target as Node)) {
         setProfileOpen(false);
       }
+
+      if (!notifRef.current?.contains(event.target as Node)) {
+        setNotifOpen(false);
+      }
     };
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         setCartOpen(false);
         setProfileOpen(false);
+        setNotifOpen(false);
       }
     };
 
@@ -127,19 +185,44 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
     localStorage.setItem('theme', newTheme);
   };
 
+  const handleMarkAllRead = async () => {
+    if (!user) return;
+    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    await supabase
+      .from('notifications')
+      .update({ is_read: true })
+      .eq('user_id', user.id)
+      .eq('is_read', false);
+  };
+
+  const handleNotifClick = async (notif: any) => {
+    setNotifOpen(false);
+    if (!notif.is_read) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n)),
+      );
+      await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notif.id);
+    }
+  };
+
   const gender = user?.user_metadata?.gender === 'female' ? 'female' : 'male';
   const displayName =
     profile?.display_name ?? user?.user_metadata?.full_name ?? user?.email?.split('@')[0] ?? 'Bạn';
   const avatarSrc = profile?.avatar_url ?? DEFAULT_AVATARS[gender];
+  const hasUnread = notifications.some((n) => !n.is_read);
 
   return (
-    <header className={styles.header}>
-      <button
-        type="button"
-        onClick={onMenuClick}
-        className={`${styles.iconBtn} ${styles.menuButton}`}
-        aria-label="Mở menu"
-      >
+    <>
+      <header className={styles.header}>
+        <button
+          type="button"
+          onClick={onMenuClick}
+          className={`${styles.iconBtn} ${styles.menuButton}`}
+          aria-label="Mở menu"
+        >
         <Menu size={22} />
       </button>
 
@@ -153,14 +236,74 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
           {mounted ? (isDark ? <Sun size={20} /> : <Moon size={20} />) : <Moon size={20} />}
         </button>
 
-        <Link href="/notifications" className={styles.iconBtn} aria-label="Thông báo">
-          <Bell size={20} />
-          <span className={styles.badge}></span>
-        </Link>
+        <div className={styles.notifWrapper} ref={notifRef}>
+          {isMobile ? (
+            <Link href="/notifications" className={styles.iconBtn} aria-label="Thông báo">
+              <Bell size={20} />
+              {hasUnread && <span className={styles.badge}></span>}
+            </Link>
+          ) : (
+            <>
+              <button
+                type="button"
+                className={styles.iconBtn}
+                aria-label="Thông báo"
+                aria-expanded={notifOpen}
+                onClick={() => setNotifOpen((open) => !open)}
+              >
+                <Bell size={20} />
+                {hasUnread && <span className={styles.badge}></span>}
+              </button>
+              {notifOpen && (
+                <div className={styles.notifPopover}>
+                  <div className={styles.notifHeader}>
+                    <h3>Thông báo</h3>
+                    {hasUnread && (
+                      <button type="button" onClick={handleMarkAllRead} className={styles.markAllBtn}>
+                        Đọc tất cả
+                      </button>
+                    )}
+                  </div>
+                  <div className={styles.notifList}>
+                    {notifications.length === 0 ? (
+                      <div className={styles.notifEmpty}>Không có thông báo mới</div>
+                    ) : (
+                      notifications.slice(0, 3).map((item) => (
+                        <Link
+                          key={item.id}
+                          href={item.href || '#'}
+                          className={`${styles.notifItem} ${!item.is_read ? styles.unreadNotif : ''}`}
+                          onClick={() => handleNotifClick(item)}
+                        >
+                          <div className={styles.notifItemBody}>
+                            <p className={styles.notifText}>{item.body}</p>
+                            <span className={styles.notifTime}>
+                              {new Date(item.created_at).toLocaleDateString('vi-VN', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </span>
+                          </div>
+                          {!item.is_read && <span className={styles.unreadDot}></span>}
+                        </Link>
+                      ))
+                    )}
+                  </div>
+                  <div className={styles.notifFooter}>
+                    <Link href="/notifications" onClick={() => setNotifOpen(false)}>
+                      Xem tất cả thông báo
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         <div className={`${styles.cartWrapper} ${styles.desktopCart}`} ref={cartRef}>
           <button
             type="button"
+            id="global-cart-icon-desktop"
             className={styles.iconBtn}
             aria-label="Giỏ hàng"
             aria-expanded={cartOpen}
@@ -169,10 +312,10 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
             <ShoppingCart size={20} />
             {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
           </button>
-          {cartOpen && <CartPopover onClose={() => setCartOpen(false)} />}
+          {cartOpen && <CartPopover onClose={() => setCartOpen(false)} onCheckout={openCheckout} />}
         </div>
 
-        <Link href="/cart" className={`${styles.iconBtn} ${styles.mobileCart}`} aria-label="Giỏ hàng">
+        <Link href="/cart" id="global-cart-icon-mobile" className={`${styles.iconBtn} ${styles.mobileCart}`} aria-label="Giỏ hàng">
           <ShoppingCart size={20} />
           {cartCount > 0 && <span className={styles.cartBadge}>{cartCount}</span>}
         </Link>
@@ -187,7 +330,7 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
               onClick={() => setProfileOpen((open) => !open)}
             >
               <span className={styles.avatarFrame}>
-                <Image src={avatarSrc} alt="" fill sizes="28px" className={styles.avatarImg} />
+                <Image src={avatarSrc} alt="" fill sizes="28px" unoptimized={avatarSrc.startsWith('http')} className={styles.avatarImg} />
               </span>
               <span className={styles.userName}>{displayName}</span>
               <ChevronDown size={16} className={styles.profileChevron} />
@@ -197,7 +340,7 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
               <div className={styles.profileMenu}>
                 <div className={styles.profileCard}>
                   <span className={styles.menuAvatar}>
-                    <Image src={avatarSrc} alt="" fill sizes="46px" className={styles.avatarImg} />
+                    <Image src={avatarSrc} alt="" fill sizes="46px" unoptimized={avatarSrc.startsWith('http')} className={styles.avatarImg} />
                   </span>
                   <div className={styles.profileMeta}>
                     <strong>{displayName}</strong>
@@ -231,5 +374,8 @@ export default function TopNav({ onMenuClick }: TopNavProps) {
         )}
       </div>
     </header>
+
+    {isCheckoutOpen && <CheckoutModal onClose={closeCheckout} />}
+    </>
   );
 }

@@ -7,6 +7,8 @@ import {
 import { createAdminSupabaseClient } from '@/lib/admin/supabase';
 import { createClient } from '@/utils/supabase/server';
 
+const adminSupabase = createAdminSupabaseClient();
+
 export const COMMUNITY_POSTS_PAGE_SIZE = 10;
 
 async function getModerationTermsForEvaluation(): Promise<CommunityModerationTerm[]> {
@@ -57,22 +59,17 @@ export async function getPosts(options: GetPostsOptions = {}): Promise<Post[]> {
     const offset = options.offset ?? 0;
     const tag = normalizeTagFilter(options.tag);
 
-    let query = supabase
-      .from('posts')
+    const { data, error } = await supabase
+      .rpc('get_viral_posts', {
+        offset_num: offset,
+        limit_num: limit,
+        tag_filter: tag || null,
+      })
       .select(`
         *,
-        author:profiles!posts_author_id_fkey(id, display_name, avatar_url),
+        author:profiles!posts_author_id_fkey(id, display_name, avatar_url, gender),
         comments(count)
-      `)
-      .eq('moderation_status', 'approved')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (tag) {
-      query = query.contains('tags', [tag]);
-    }
-
-    const { data, error } = await query;
+      `);
 
     if (error) {
       console.warn('Error fetching posts:', error.message);
@@ -89,10 +86,43 @@ export async function getPosts(options: GetPostsOptions = {}): Promise<Post[]> {
       likedPostIds = new Set((likes ?? []).map((l) => l.post_id));
     }
 
-    return (data ?? []).map((post) => enrichPost(post as Post & { comments?: unknown }, likedPostIds));
+    return (data ?? []).map((post: any) => enrichPost(post as Post & { comments?: unknown }, likedPostIds));
   } catch (err) {
     console.warn('Network error fetching posts. Returning empty list.', err);
     return [];
+  }
+}
+
+export async function getPostById(postId: string): Promise<Post | null> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { data, error } = await supabase
+      .from('posts')
+      .select(`
+        *,
+        author:profiles!posts_author_id_fkey(id, display_name, avatar_url, gender),
+        comments(count)
+      `)
+      .eq('id', postId)
+      .eq('moderation_status', 'approved')
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    let likedPostIds = new Set<string>();
+    if (user) {
+      const { data: likes } = await supabase
+        .from('post_likes')
+        .select('post_id')
+        .eq('user_id', user.id);
+      likedPostIds = new Set((likes ?? []).map((l) => l.post_id));
+    }
+
+    return enrichPost(data as Post & { comments?: unknown }, likedPostIds);
+  } catch {
+    return null;
   }
 }
 
@@ -203,6 +233,36 @@ export async function toggleLike(postId: string) {
     await supabase
       .from('post_likes')
       .insert({ user_id: user.id, post_id: postId });
+
+    // Generate notification
+    try {
+      const { data: post } = await supabase
+        .from('posts')
+        .select('author_id, content')
+        .eq('id', postId)
+        .single();
+
+      if (post && post.author_id && post.author_id !== user.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .single();
+        const userName = profile?.display_name || user.email?.split('@')[0] || 'Ai đó';
+
+        await adminSupabase.from('notifications').insert({
+          user_id: post.author_id,
+          icon: 'heart',
+          title: 'Cộng đồng',
+          body: `${userName} đã thích bài viết của bạn: "${post.content.substring(0, 40)}${post.content.length > 40 ? '...' : ''}"`,
+          href: `/community/post/${postId}`,
+          is_read: false,
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Failed to send post like notification:', notifErr);
+    }
+
     return true; // liked
   }
 }
@@ -210,10 +270,11 @@ export async function toggleLike(postId: string) {
 export async function getComments(postId: string): Promise<Comment[]> {
   try {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
     const { data, error } = await supabase
       .from('comments')
-      .select('*, author:profiles!comments_author_id_fkey(id, display_name, avatar_url)')
+      .select('*, author:profiles!comments_author_id_fkey(id, display_name, avatar_url, gender)')
       .eq('post_id', postId)
       .order('created_at', { ascending: true });
 
@@ -221,7 +282,21 @@ export async function getComments(postId: string): Promise<Comment[]> {
       console.warn(`Error fetching comments for ${postId}:`, error.message);
       return [];
     }
-    return (data ?? []).map((c) => ({ ...c, author: c.author ?? undefined }));
+
+    let likedCommentIds = new Set<string>();
+    if (user) {
+      const { data: likes } = await supabase
+        .from('comment_likes')
+        .select('comment_id')
+        .eq('user_id', user.id);
+      likedCommentIds = new Set((likes ?? []).map((l) => l.comment_id));
+    }
+
+    return (data ?? []).map((c) => ({
+      ...c,
+      author: c.author ?? undefined,
+      liked_by_user: likedCommentIds.has(c.id),
+    }));
   } catch (err) {
     console.warn(`Network error fetching comments for ${postId}. Returning empty list.`, err);
     return [];
@@ -269,5 +344,113 @@ export async function createComment(postId: string, content: string, parentId?: 
     .single();
 
   if (error) throw error;
+
+  // Generate notification
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('display_name')
+      .eq('id', user.id)
+      .single();
+    const userName = profile?.display_name || user.email?.split('@')[0] || 'Ai đó';
+
+    if (parentId) {
+      // Reply notification
+      const { data: parent } = await supabase
+        .from('comments')
+        .select('author_id')
+        .eq('id', parentId)
+        .single();
+      if (parent && parent.author_id && parent.author_id !== user.id) {
+        await adminSupabase.from('notifications').insert({
+          user_id: parent.author_id,
+          icon: 'message',
+          title: 'Bình luận mới',
+          body: `${userName} đã trả lời bình luận của bạn: "${content.substring(0, 40)}${content.length > 40 ? '...' : ''}"`,
+          href: `/community/post/${postId}#comment-${data.id}`,
+          is_read: false,
+        });
+      }
+    } else {
+      // Top-level comment notification
+      const { data: postDetail } = await supabase
+        .from('posts')
+        .select('author_id')
+        .eq('id', postId)
+        .single();
+      if (postDetail && postDetail.author_id && postDetail.author_id !== user.id) {
+        await adminSupabase.from('notifications').insert({
+          user_id: postDetail.author_id,
+          icon: 'message',
+          title: 'Bình luận mới',
+          body: `${userName} đã bình luận về bài viết của bạn: "${content.substring(0, 40)}${content.length > 40 ? '...' : ''}"`,
+          href: `/community/post/${postId}#comment-${data.id}`,
+          is_read: false,
+        });
+      }
+    }
+  } catch (notifErr) {
+    console.warn('Failed to send comment notification:', notifErr);
+  }
+
   return { ...data, author: data.author ?? undefined } as Comment;
 }
+
+export async function toggleCommentLike(commentId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  // Check if already liked
+  const { data: existing } = await supabase
+    .from('comment_likes')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .eq('comment_id', commentId)
+    .single();
+
+  if (existing) {
+    await supabase
+      .from('comment_likes')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('comment_id', commentId);
+    return false; // unliked
+  } else {
+    await supabase
+      .from('comment_likes')
+      .insert({ user_id: user.id, comment_id: commentId });
+
+    // Generate notification
+    try {
+      const { data: comment } = await supabase
+        .from('comments')
+        .select('author_id, content, post_id')
+        .eq('id', commentId)
+        .single();
+
+      if (comment && comment.author_id && comment.author_id !== user.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('display_name')
+          .eq('id', user.id)
+          .single();
+        const userName = profile?.display_name || user.email?.split('@')[0] || 'Ai đó';
+
+        await adminSupabase.from('notifications').insert({
+          user_id: comment.author_id,
+          icon: 'heart',
+          title: 'Cộng đồng',
+          body: `${userName} đã thích bình luận của bạn: "${comment.content.substring(0, 40)}${comment.content.length > 40 ? '...' : ''}"`,
+          href: `/community/post/${comment.post_id}#comment-${commentId}`,
+          is_read: false,
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Failed to send comment like notification:', notifErr);
+    }
+
+    return true; // liked
+  }
+}
+

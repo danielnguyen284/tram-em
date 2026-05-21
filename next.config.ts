@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   transpilePackages: ['lucide-react'],
   images: {
+    minimumCacheTTL: 60,
     remotePatterns: [
       { protocol: 'https', hostname: 'i.pravatar.cc' },
       { protocol: 'https', hostname: 'images.unsplash.com' },

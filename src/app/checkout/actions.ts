@@ -1,7 +1,7 @@
 'use server';
 
-import { createPaymentCode, getPaymentExpiryDate } from '@/lib/sepay';
 import { createClient } from '@/utils/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
@@ -35,8 +35,8 @@ function parseCheckoutItems(value: FormDataEntryValue | null): CheckoutItemInput
   }
 }
 
-function fail(message: string): never {
-  redirect(`/checkout?message=${encodeURIComponent(message)}`);
+function fail(message: string) {
+  return { error: message };
 }
 
 export async function createCheckoutOrder(formData: FormData) {
@@ -45,27 +45,24 @@ export async function createCheckoutOrder(formData: FormData) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect(`/login?message=${encodeURIComponent('Vui lòng đăng nhập để thanh toán')}`);
-  }
-
-  if (!user.email_confirmed_at) {
-    fail('Vui lòng xác minh email trước khi thanh toán');
+  if (user && !user.email_confirmed_at) {
+    return fail('Vui lòng xác minh email trước khi thanh toán');
   }
 
   const shippingName = getString(formData, 'shipping_name');
   const shippingPhone = getString(formData, 'shipping_phone');
   const shippingAddress = getString(formData, 'shipping_address');
   const note = getString(formData, 'note');
+  const contactFacebook = getString(formData, 'contact_facebook');
   const shouldSaveAddress = formData.get('save_address') === 'on';
   const items = parseCheckoutItems(formData.get('items'));
 
   if (!shippingName || !shippingPhone || !shippingAddress) {
-    fail('Vui lòng nhập đầy đủ thông tin giao hàng');
+    return fail('Vui lòng nhập đầy đủ thông tin giao hàng');
   }
 
   if (items.length === 0) {
-    fail('Giỏ hàng đang trống');
+    return fail('Giỏ hàng đang trống');
   }
 
   const productIds = Array.from(new Set(items.map((item) => item.id)));
@@ -76,14 +73,14 @@ export async function createCheckoutOrder(formData: FormData) {
     .eq('is_active', true);
 
   if (productsError || !products || products.length !== productIds.length) {
-    fail('Một số sản phẩm không còn khả dụng');
+    return fail('Một số sản phẩm không còn khả dụng');
   }
 
   const productsById = new Map(products.map((product) => [product.id, product]));
   const orderItems = items.map((item) => {
     const product = productsById.get(item.id);
     if (!product || product.stock < item.quantity) {
-      fail('Một số sản phẩm không đủ số lượng tồn kho');
+      throw new Error('Một số sản phẩm không đủ số lượng tồn kho');
     }
 
     return {
@@ -95,47 +92,46 @@ export async function createCheckoutOrder(formData: FormData) {
     };
   });
 
-  const total = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const expiresAt = getPaymentExpiryDate().toISOString();
+  const totalAmount = orderItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
-  const { data: order, error: orderError } = await supabase
+  const serviceClient = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
+  const { data: order, error: orderError } = await serviceClient
     .from('orders')
     .insert({
-      user_id: user.id,
+      user_id: user?.id || null,
       status: 'pending',
       payment_status: 'pending',
-      payment_method: 'sepay',
-      total,
+      payment_method: 'manual',
+      total: totalAmount,
       shipping_name: shippingName,
       shipping_phone: shippingPhone,
       shipping_address: shippingAddress,
       note: note || null,
-      expires_at: expiresAt,
+      contact_phone: shippingPhone,
+      contact_facebook: contactFacebook || null,
     })
     .select('id')
     .single();
 
   if (orderError || !order) {
-    fail('Không thể tạo đơn hàng, vui lòng thử lại');
+    console.error('Order creation error:', orderError);
+    return fail(`Không thể tạo đơn hàng, vui lòng thử lại (${orderError?.message || 'Unknown'})`);
   }
 
-  const paymentCode = createPaymentCode(order.id);
-  const { error: paymentCodeError } = await supabase
-    .from('orders')
-    .update({ payment_code: paymentCode })
-    .eq('id', order.id)
-    .eq('user_id', user.id);
-
-  const { error: itemsError } = await supabase
+  const { error: itemsError } = await serviceClient
     .from('order_items')
     .insert(orderItems.map((item) => ({ ...item, order_id: order.id })));
 
-  if (paymentCodeError || itemsError) {
-    await supabase.from('orders').delete().eq('id', order.id).eq('user_id', user.id);
-    fail('Không thể lưu đơn hàng, vui lòng thử lại');
+  if (itemsError) {
+    await serviceClient.from('orders').delete().eq('id', order.id);
+    return fail('Không thể lưu đơn hàng, vui lòng thử lại');
   }
 
-  if (shouldSaveAddress) {
+  if (shouldSaveAddress && user) {
     await supabase.from('shipping_addresses').upsert(
       {
         user_id: user.id,
@@ -148,8 +144,11 @@ export async function createCheckoutOrder(formData: FormData) {
     );
   }
 
-  await supabase.from('cart_items').delete().eq('user_id', user.id);
+  if (user) {
+    await supabase.from('cart_items').delete().eq('user_id', user.id);
+  }
 
-  revalidatePath('/checkout');
-  redirect(`/checkout/${order.id}`);
+  return { success: true };
 }
+
+

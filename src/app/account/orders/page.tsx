@@ -11,19 +11,10 @@ export const dynamic = 'force-dynamic';
 
 const orderStatusNames: Record<string, string> = {
   pending: 'Đang xử lý',
-  confirmed: 'Đã xác nhận',
-  shipping: 'Đang giao',
-  delivered: 'Đã giao',
+  completed: 'Đã hoàn thành',
   cancelled: 'Đã hủy',
 };
 
-const paymentStatusNames: Record<string, string> = {
-  pending: 'Chờ thanh toán',
-  paid: 'Đã thanh toán',
-  expired: 'Hết hạn',
-  failed: 'Thất bại',
-  manual_review: 'Đang kiểm tra',
-};
 
 const dateFormatter = new Intl.DateTimeFormat('vi-VN', {
   day: '2-digit',
@@ -70,13 +61,12 @@ export default async function AccountOrdersPage() {
               <article key={order.id} className={styles.orderCard}>
                 <div className={styles.orderHeader}>
                   <div>
-                    <p className={styles.orderCode}>#{order.payment_code ?? order.id.slice(0, 8)}</p>
+                    <p className={styles.orderCode}>#{order.id.slice(0, 8).toUpperCase()}</p>
                     <span>{dateFormatter.format(new Date(order.created_at))}</span>
                   </div>
                   <div className={styles.statusGroup}>
-                    <span className={styles.status}>{orderStatusNames[order.status] ?? order.status}</span>
-                    <span className={`${styles.status} ${order.payment_status === 'paid' ? styles.paid : styles.pending}`}>
-                      {paymentStatusNames[order.payment_status] ?? order.payment_status}
+                    <span className={`${styles.status} ${order.status === 'cancelled' ? styles.pending : ''}`}>
+                      {orderStatusNames[order.status] ?? order.status}
                     </span>
                   </div>
                 </div>

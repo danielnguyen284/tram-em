@@ -4,6 +4,7 @@ export type Product = {
   id: string;
   slug: string;
   name: string;
+  category_id: string | null;
   category: string;
   price: number;
   old_price: number | null;
@@ -12,7 +13,16 @@ export type Product = {
   images: string[];
   tags: string[];
   stock: number;
-  rating: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProductCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  sort_order: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -58,9 +68,11 @@ export type Comment = {
   author_id: string | null;
   parent_id: string | null;
   content: string;
+  likes_count?: number;
   created_at: string;
   // Joined
   author?: Profile;
+  liked_by_user?: boolean;
 };
 
 export type PopularTag = {
@@ -73,7 +85,7 @@ export type Profile = {
   id: string;
   display_name: string | null;
   avatar_url: string | null;
-  role?: 'admin' | 'customer' | null;
+  role: 'admin' | 'customer';
   phone?: string | null;
   gender?: string | null;
   username?: string | null;
@@ -133,19 +145,16 @@ export type Notification = {
 export type Order = {
   id: string;
   user_id: string | null;
-  status: 'pending' | 'confirmed' | 'shipping' | 'delivered' | 'cancelled';
-  payment_status: 'pending' | 'paid' | 'expired' | 'failed' | 'manual_review';
+  status: 'pending' | 'completed' | 'cancelled';
+  payment_status: string;
   payment_method: string;
-  payment_code: string | null;
-  payment_amount: number;
-  payment_reference: string | null;
-  paid_at: string | null;
-  expires_at: string | null;
   total: number;
   shipping_name: string | null;
   shipping_phone: string | null;
   shipping_address: string | null;
   note: string | null;
+  contact_phone: string | null;
+  contact_facebook: string | null;
   created_at: string;
   updated_at: string;
   // Joined
@@ -172,24 +181,7 @@ export type ShippingAddress = {
   updated_at: string;
 };
 
-export type SepayTransaction = {
-  id: string;
-  sepay_transaction_id: number;
-  order_id: string | null;
-  gateway: string | null;
-  transaction_date: string | null;
-  account_number: string | null;
-  sub_account: string | null;
-  payment_code: string | null;
-  content: string | null;
-  transfer_type: string | null;
-  description: string | null;
-  transfer_amount: number;
-  accumulated: number;
-  reference_code: string | null;
-  raw_payload: Record<string, unknown>;
-  created_at: string;
-};
+
 
 export type CartItem = {
   id: string;

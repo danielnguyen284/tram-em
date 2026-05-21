@@ -13,6 +13,7 @@ create table if not exists profiles (
   username text unique,
   address text,
   email text,
+  role text not null default 'customer' check (role in ('customer', 'admin')),
   created_at timestamptz default now()
 );
 
@@ -44,10 +45,24 @@ create trigger on_auth_user_created
   for each row execute function handle_new_user();
 
 -- ─── Products (Shop) ─────────────────────────────────────────
+create table if not exists product_categories (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  name text unique not null,
+  sort_order integer not null default 0,
+  is_active boolean not null default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+alter table product_categories enable row level security;
+create policy "Product categories viewable by everyone" on product_categories for select using (is_active = true);
+
 create table if not exists products (
   id uuid primary key default gen_random_uuid(),
   slug text unique not null,
   name text not null,
+  category_id uuid references product_categories(id) on delete set null,
   category text not null,
   price integer not null,
   old_price integer,
@@ -92,6 +107,7 @@ create table if not exists posts (
   tags text[] default '{}',
   likes_count integer default 0,
   reposts_count integer default 0,
+  comments_count integer default 0,
   moderation_status text not null default 'approved' check (moderation_status in ('approved', 'pending_review', 'rejected')),
   moderation_reason text,
   moderation_matches text[] not null default '{}',
@@ -148,6 +164,7 @@ create table if not exists comments (
   author_id uuid references profiles(id) on delete cascade,
   parent_id uuid references comments(id) on delete cascade,
   content text not null,
+  likes_count integer default 0,
   created_at timestamptz default now()
 );
 
@@ -158,6 +175,83 @@ create policy "Authors delete own comments" on comments for delete using (auth.u
 
 create index if not exists comments_post_parent_created_at_idx
   on comments (post_id, parent_id, created_at);
+
+-- Trigger to update comments_count on posts
+create or replace function update_post_comments_count()
+returns trigger as $$
+begin
+  if TG_OP = 'INSERT' then
+    update posts set comments_count = comments_count + 1 where id = NEW.post_id;
+    return NEW;
+  elsif TG_OP = 'DELETE' then
+    update posts set comments_count = comments_count - 1 where id = OLD.post_id;
+    return OLD;
+  end if;
+  return null;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_post_comment_change on comments;
+create trigger on_post_comment_change
+  after insert or delete on comments
+  for each row execute function update_post_comments_count();
+
+-- ─── Comment Likes ──────────────────────────────────────────
+create table if not exists comment_likes (
+  comment_id uuid references comments(id) on delete cascade,
+  user_id uuid references auth.users(id) on delete cascade,
+  primary key (comment_id, user_id)
+);
+
+alter table comment_likes enable row level security;
+create policy "Comment likes viewable by everyone" on comment_likes for select using (true);
+create policy "Auth users like comment" on comment_likes for insert with check (auth.uid() = user_id);
+create policy "Auth users unlike comment" on comment_likes for delete using (auth.uid() = user_id);
+
+-- Trigger to update likes_count on comments
+create or replace function update_comment_likes_count()
+returns trigger as $$
+begin
+  if TG_OP = 'INSERT' then
+    update comments set likes_count = likes_count + 1 where id = NEW.comment_id;
+    return NEW;
+  elsif TG_OP = 'DELETE' then
+    update comments set likes_count = likes_count - 1 where id = OLD.comment_id;
+    return OLD;
+  end if;
+  return null;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_comment_like_change on comment_likes;
+create trigger on_comment_like_change
+  after insert or delete on comment_likes
+  for each row execute function update_comment_likes_count();
+
+
+-- Function to get posts sorted by viral score (Hacker News algorithm)
+create or replace function get_viral_posts(
+  offset_num int default 0,
+  limit_num int default 10,
+  tag_filter text default null
+)
+returns setof posts
+language plpgsql
+security definer
+as $$
+begin
+  return query
+  select p.*
+  from posts p
+  where p.moderation_status = 'approved'
+    and (tag_filter is null or tag_filter = any(p.tags))
+  order by 
+    (p.likes_count + p.comments_count * 2.0) / 
+    power(extract(epoch from (now() - p.created_at))/3600.0 + 2, 1.8) desc
+  limit limit_num
+  offset offset_num;
+end;
+$$;
 
 -- ─── Community Moderation Terms ──────────────────────────────
 create table if not exists community_moderation_terms (
@@ -347,6 +441,8 @@ end;
 $$ language plpgsql;
 
 create trigger products_updated_at before update on products
+  for each row execute function update_updated_at();
+create trigger product_categories_updated_at before update on product_categories
   for each row execute function update_updated_at();
 create trigger orders_updated_at before update on orders
   for each row execute function update_updated_at();

@@ -3,7 +3,8 @@
 import type { Product } from '@/types/database';
 import { formatVnd } from '@/utils/format';
 import { useCartStore } from '@/store/useCartStore';
-import { ArrowLeft, Minus, Plus, ShieldCheck, ShoppingCart, Star, Truck } from 'lucide-react';
+import { animateFlyToCart } from '@/utils/animations';
+import { ArrowLeft, Minus, Plus, ShieldCheck, ShoppingCart, Truck } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -55,10 +56,6 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         <article className={styles.summary}>
           <div className={styles.categoryRow}>
             <span>{product.category}</span>
-            <span className={styles.rating}>
-              <Star size={16} fill="currentColor" />
-              {product.rating}
-            </span>
           </div>
 
           <h1>{product.name}</h1>
@@ -92,20 +89,25 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           <button
             type="button"
             className={styles.addButton}
-            onClick={() => addItem({
-              id: product.id,
-              slug: product.slug,
-              name: product.name,
-              category: product.category,
-              price: product.price,
-              oldPrice: product.old_price ?? undefined,
-              description: product.description,
-              details: product.details,
-              images: product.images,
-              tags: product.tags,
-              stock: product.stock,
-              rating: product.rating,
-            }, quantity)}
+            onClick={(e) => {
+              const section = e.currentTarget.closest('section');
+              const img = section?.querySelector('img') as HTMLImageElement;
+              animateFlyToCart(img);
+
+              addItem({
+                id: product.id,
+                slug: product.slug,
+                name: product.name,
+                category: product.category,
+                price: product.price,
+                oldPrice: product.old_price ?? undefined,
+                description: product.description,
+                details: product.details,
+                images: product.images,
+                tags: product.tags,
+                stock: product.stock,
+              }, quantity);
+            }}
           >
             <ShoppingCart size={20} />
             Thêm vào giỏ hàng

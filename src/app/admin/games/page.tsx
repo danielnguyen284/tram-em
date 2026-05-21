@@ -1,10 +1,5 @@
+import { games } from '@/data/games';
 import styles from '../admin.module.css';
-
-const games = [
-  { title: 'Bóp bong bóng', category: 'Vui nhộn', href: '/games/balloon-pop' },
-  { title: 'Vẽ trên cát', category: 'Sáng tạo', href: '/games/sand-draw' },
-  { title: 'Sắp xếp sỏi', category: 'Thư giãn', href: '/games/pebble-sort' },
-];
 
 export default function AdminGamesPage() {
   return (

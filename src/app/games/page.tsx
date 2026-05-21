@@ -1,45 +1,17 @@
 'use client';
 
 import Shell from '@/components/layout/Shell';
-import Link from 'next/link';
+import { gameCategories, games } from '@/data/games';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useState } from 'react';
 import styles from './games.module.css';
-
-const categories = ['Tất cả', 'Vui nhộn', 'Thư giãn', 'Sáng tạo'];
-
-const games = [
-  {
-    id: 'balloon-pop',
-    title: 'Bóp bóng bay',
-    description: 'Bóp từng quả bóng, thả lỏng căng thẳng theo từng tiếng pop nhẹ nhàng',
-    category: 'Vui nhộn',
-    image: '/images/game-balloon-pop.png',
-    href: '/games/balloon-pop',
-  },
-  {
-    id: 'sand-draw',
-    title: 'Vẽ trên cát',
-    description: 'Vẽ tự do trên cát ấm, nghe tiếng xào xạo và để tâm trí bay bổng',
-    category: 'Sáng tạo',
-    image: '/images/game-sand-draw.png',
-    href: '/games/sand-draw',
-  },
-  {
-    id: 'pebble-sort',
-    title: 'Sắp xếp sỏi',
-    description: 'Đổi vị trí những viên sỏi màu, thiền theo nhịp chuyển động nhẹ nhàng',
-    category: 'Thư giãn',
-    image: '/images/game-pebble-sort.png',
-    href: '/games/pebble-sort',
-  },
-];
 
 export default function GamesPage() {
   const [activeCategory, setActiveCategory] = useState('Tất cả');
 
   const filtered = games.filter(
-    g => activeCategory === 'Tất cả' || g.category === activeCategory
+    (game) => activeCategory === 'Tất cả' || game.category === activeCategory,
   );
 
   return (
@@ -51,25 +23,27 @@ export default function GamesPage() {
         </div>
 
         <div className={styles.filters}>
-          {categories.map(cat => (
+          {gameCategories.map((category) => (
             <button
-              key={cat}
-              className={`${styles.filterBtn} ${activeCategory === cat ? styles.active : ''}`}
-              onClick={() => setActiveCategory(cat)}
+              key={category}
+              className={`${styles.filterBtn} ${activeCategory === category ? styles.active : ''}`}
+              onClick={() => setActiveCategory(category)}
+              type="button"
             >
-              {cat}
+              {category}
             </button>
           ))}
         </div>
 
         <div className={styles.grid}>
-          {filtered.map(game => (
+          {filtered.map((game) => (
             <Link key={game.id} href={game.href} className={styles.card}>
               <div className={styles.thumbnail}>
                 <Image
                   src={game.image}
                   alt={game.title}
                   fill
+                  sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 320px"
                   className={styles.thumbImg}
                 />
                 <div className={styles.playOverlay}>

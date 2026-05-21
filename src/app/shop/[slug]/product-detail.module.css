@@ -88,8 +88,7 @@
 .categoryRow,
 .priceRow,
 .quantityRow,
-.benefits div,
-.rating {
+.benefits div {
   display: flex;
   align-items: center;
 }
@@ -101,11 +100,6 @@
   font-size: var(--text-small);
   font-weight: 900;
   text-transform: uppercase;
-}
-
-.rating {
-  gap: 5px;
-  color: #d59d36;
 }
 
 .summary h1 {

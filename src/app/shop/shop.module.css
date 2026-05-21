@@ -192,8 +192,7 @@
 }
 
 .cardMeta,
-.cardFooter,
-.rating {
+.cardFooter {
   display: flex;
   align-items: center;
 }
@@ -205,11 +204,6 @@
   font-size: var(--text-tiny);
   font-weight: 800;
   text-transform: uppercase;
-}
-
-.rating {
-  gap: 4px;
-  color: #d59d36;
 }
 
 .productName {

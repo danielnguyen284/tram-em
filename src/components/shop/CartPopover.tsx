@@ -7,7 +7,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import styles from './CartPopover.module.css';
 
-export default function CartPopover({ onClose }: { onClose: () => void }) {
+export default function CartPopover({ onClose, onCheckout }: { onClose: () => void; onCheckout: () => void }) {
   const { items, removeItem, updateQuantity, clearCart } = useCartStore();
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
@@ -87,9 +87,9 @@ export default function CartPopover({ onClose }: { onClose: () => void }) {
               <span>Tổng tạm tính</span>
               <strong>{formatVnd(total)}</strong>
             </div>
-            <Link href="/checkout" className={styles.checkoutButton} onClick={onClose}>
-              Thanh toán
-            </Link>
+            <button type="button" className={styles.checkoutButton} onClick={() => { onClose(); onCheckout(); }}>
+              Mua
+            </button>
             <button type="button" className={styles.clearButton} onClick={clearCart}>
               Xóa giỏ hàng
             </button>

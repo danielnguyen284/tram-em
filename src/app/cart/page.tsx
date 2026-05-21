@@ -3,6 +3,7 @@
 import Shell from '@/components/layout/Shell';
 import { formatVnd } from '@/utils/format';
 import { useCartStore } from '@/store/useCartStore';
+import { useUIStore } from '@/store/useUIStore';
 import { Minus, Plus, ShoppingBag, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -10,6 +11,7 @@ import styles from './cart.module.css';
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart } = useCartStore();
+  const openCheckout = useUIStore((state) => state.openCheckout);
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   return (
@@ -100,9 +102,9 @@ export default function CartPage() {
                 <span>Tạm tính</span>
                 <strong>{formatVnd(total)}</strong>
               </div>
-              <Link href="/checkout" className={styles.checkoutButton}>
+              <button type="button" onClick={openCheckout} className={styles.checkoutButton}>
                 Thanh toán
-              </Link>
+              </button>
               <Link href="/shop" className={styles.continueLink}>
                 Tiếp tục mua sắm
               </Link>

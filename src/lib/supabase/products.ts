@@ -1,5 +1,23 @@
-import type { Product } from '@/types/database';
+import type { Product, ProductCategory } from '@/types/database';
 import { createPublicClient } from '@/utils/supabase/server';
+
+const productPublicFields = [
+  'id',
+  'slug',
+  'name',
+  'category_id',
+  'category',
+  'price',
+  'old_price',
+  'description',
+  'details',
+  'images',
+  'tags',
+  'stock',
+  'is_active',
+  'created_at',
+  'updated_at',
+].join(',');
 
 export async function getProducts(category?: string): Promise<Product[]> {
   try {
@@ -7,7 +25,7 @@ export async function getProducts(category?: string): Promise<Product[]> {
 
     let query = supabase
       .from('products')
-      .select('*')
+      .select(productPublicFields)
       .order('created_at', { ascending: false });
 
     if (category && category !== 'Tất cả') {
@@ -19,7 +37,7 @@ export async function getProducts(category?: string): Promise<Product[]> {
       console.warn('Error fetching products:', error.message);
       return [];
     }
-    return data ?? [];
+    return (data as unknown as Product[]) ?? [];
   } catch (err) {
     console.warn('Network error fetching products. Returning empty fallback array.', err);
     return [];
@@ -32,7 +50,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select(productPublicFields)
       .eq('slug', slug)
       .single();
 
@@ -40,7 +58,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
       console.warn(`Error fetching product by slug ${slug}:`, error.message);
       return null;
     }
-    return data;
+    return data as unknown as Product | null;
   } catch (err) {
     console.warn(`Network error fetching product ${slug}. Returning null.`, err);
     return null;
@@ -52,19 +70,58 @@ export async function getProductCategories(): Promise<string[]> {
     const supabase = createPublicClient();
 
     const { data, error } = await supabase
+      .from('product_categories')
+      .select('name')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.warn('Error fetching product categories:', error.message);
+      return getProductCategoriesFromProducts();
+    }
+    const unique = [...new Set((data ?? []).map((r) => r.name))];
+    return ['Tất cả', ...unique];
+  } catch (err) {
+    console.warn('Network error fetching product categories. Falling back to product rows.', err);
+    return getProductCategoriesFromProducts();
+  }
+}
+
+async function getProductCategoriesFromProducts(): Promise<string[]> {
+  try {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
       .from('products')
       .select('category')
       .eq('is_active', true);
 
-    if (error) {
-      console.warn('Error fetching categories:', error.message);
-      return ['Tất cả'];
-    }
+    if (error) return ['Tất cả'];
     const unique = [...new Set((data ?? []).map((r) => r.category))];
     return ['Tất cả', ...unique];
-  } catch (err) {
-    console.warn('Network error fetching categories. Returning ["Tất cả"].', err);
+  } catch {
     return ['Tất cả'];
+  }
+}
+
+export async function getProductCategoryRows(): Promise<ProductCategory[]> {
+  try {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from('product_categories')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.warn('Error fetching product category rows:', error.message);
+      return [];
+    }
+    return (data as unknown as ProductCategory[]) ?? [];
+  } catch (err) {
+    console.warn('Network error fetching product category rows. Returning empty list.', err);
+    return [];
   }
 }
 
@@ -87,5 +144,3 @@ export async function getProductSlugs(): Promise<string[]> {
     return [];
   }
 }
-
-

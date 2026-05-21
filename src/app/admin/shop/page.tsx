@@ -1,28 +1,107 @@
-import { saveProduct, toggleProductActive, updateOrderStatus } from '@/app/admin/actions';
-import { getAdminOrders, getAdminProducts } from '@/lib/admin/data';
+import {
+  saveProduct,
+  saveProductCategory,
+  toggleProductActive,
+  toggleProductCategoryActive,
+  updateOrderStatus,
+} from '@/app/admin/actions';
+import { getAdminOrders, getAdminProductCategories, getAdminProducts } from '@/lib/admin/data';
 import { formatVnd, timeAgo } from '@/utils/format';
 import styles from '../admin.module.css';
 
 const orderStatusNames: Record<string, string> = {
-  pending: 'Chờ xử lý',
-  confirmed: 'Đã xác nhận',
-  shipping: 'Đang giao hàng',
-  delivered: 'Đã giao hàng',
+  pending: 'Đang xử lý',
+  completed: 'Đã hoàn thành',
   cancelled: 'Đã hủy',
 };
 const orderStatuses = Object.keys(orderStatusNames);
 
 export default async function AdminShopPage() {
-  const [products, orders] = await Promise.all([getAdminProducts(), getAdminOrders()]);
+  const [products, orders, categories] = await Promise.all([
+    getAdminProducts(),
+    getAdminOrders(),
+    getAdminProductCategories(),
+  ]);
+  const activeCategories = categories.filter((category) => category.is_active);
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <div>
           <h1>Quản lý cửa hàng</h1>
-          <p>Quản lý sản phẩm, tồn kho, giá và trạng thái đơn hàng.</p>
+          <p>Quản lý danh mục, sản phẩm, tồn kho, giá và trạng thái đơn hàng.</p>
         </div>
       </header>
+
+      <section className={styles.split}>
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h2>Danh mục sản phẩm</h2>
+            <span className={styles.muted}>{categories.length} mục</span>
+          </div>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Tên</th>
+                <th>Slug</th>
+                <th>Thứ tự</th>
+                <th>Trạng thái</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map((category) => (
+                <tr key={category.id}>
+                  <td>{category.name}</td>
+                  <td>{category.slug}</td>
+                  <td>{category.sort_order}</td>
+                  <td>
+                    <span className={`${styles.status} ${!category.is_active ? styles.statusOff : ''}`}>
+                      {category.is_active ? 'Đang hiện' : 'Đã ẩn'}
+                    </span>
+                  </td>
+                  <td>
+                    <form action={toggleProductCategoryActive}>
+                      <input type="hidden" name="id" value={category.id} />
+                      <input type="hidden" name="is_active" value={String(category.is_active)} />
+                      <button className={styles.ghostButton} type="submit">
+                        {category.is_active ? 'Ẩn' : 'Hiện'}
+                      </button>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            <h2>Thêm danh mục</h2>
+          </div>
+          <form action={saveProductCategory} className={styles.formGrid}>
+            <label>
+              Tên danh mục
+              <input name="name" required />
+            </label>
+            <label>
+              Slug
+              <input name="slug" placeholder="tự tạo nếu bỏ trống" />
+            </label>
+            <label>
+              Thứ tự
+              <input name="sort_order" type="number" defaultValue={0} />
+            </label>
+            <label className={styles.checkbox}>
+              <input name="is_active" type="checkbox" defaultChecked />
+              Đang hiển thị
+            </label>
+            <div className={styles.formFooter}>
+              <button type="submit" className={styles.button}>Lưu danh mục</button>
+            </div>
+          </form>
+        </div>
+      </section>
 
       <section className={styles.split}>
         <div className={styles.panel}>
@@ -83,7 +162,14 @@ export default async function AdminShopPage() {
             </label>
             <label>
               Danh mục
-              <input name="category" required />
+              <select name="category_id" required defaultValue="">
+                <option value="" disabled>Chọn danh mục</option>
+                {activeCategories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
             </label>
             <label>
               Giá
@@ -96,10 +182,6 @@ export default async function AdminShopPage() {
             <label>
               Tồn kho
               <input name="stock" type="number" defaultValue={0} />
-            </label>
-            <label>
-              Đánh giá (Rating)
-              <input name="rating" type="number" step="0.1" min="0" max="5" defaultValue={0} />
             </label>
             <label>
               Tags
@@ -139,8 +221,7 @@ export default async function AdminShopPage() {
               <th>Mã</th>
               <th>Khách hàng</th>
               <th>Tổng</th>
-              <th>Thanh toán</th>
-              <th>Mã TT</th>
+              <th>Liên hệ</th>
               <th>Thời gian</th>
               <th>Trạng thái</th>
             </tr>
@@ -148,21 +229,23 @@ export default async function AdminShopPage() {
           <tbody>
             {orders.map((order) => (
               <tr key={order.id}>
-                <td className={styles.truncate}>{order.id}</td>
+                <td className={styles.truncate}>#{order.id.slice(0, 8).toUpperCase()}</td>
                 <td>
                   <strong>{order.shipping_name ?? 'Khách hàng'}</strong>
                   <p className={styles.muted}>{order.shipping_phone}</p>
                 </td>
                 <td>{formatVnd(order.total)}</td>
                 <td>
-                  <span className={`${styles.status} ${order.payment_status !== 'paid' ? styles.statusOff : ''}`}>
-                    {order.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
-                  </span>
-                  {order.payment_amount > 0 && (
-                    <p className={styles.muted}>{formatVnd(order.payment_amount)}</p>
+                  {order.contact_phone && (
+                    <p>📱 {order.contact_phone}</p>
+                  )}
+                  {order.contact_facebook && (
+                    <p className={styles.muted}>👤 {order.contact_facebook}</p>
+                  )}
+                  {!order.contact_phone && !order.contact_facebook && (
+                    <span className={styles.muted}>Chưa có</span>
                   )}
                 </td>
-                <td className={styles.truncate}>{order.payment_code ?? '-'}</td>
                 <td>{timeAgo(order.created_at)}</td>
                 <td>
                   <form action={updateOrderStatus} className={styles.actions}>

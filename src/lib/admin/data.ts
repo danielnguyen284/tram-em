@@ -1,4 +1,4 @@
-import type { CommunityModerationTerm, MediaAsset, Order, Post, Product, Profile, Sound } from '@/types/database';
+import type { CommunityModerationTerm, MediaAsset, Order, Post, Product, ProductCategory, Profile, Sound } from '@/types/database';
 import { createAdminSupabaseClient } from './supabase';
 
 async function safeCount(table: string) {
@@ -78,6 +78,16 @@ export async function getAdminProducts(limit?: number): Promise<Product[]> {
     if (limit) query = query.limit(limit);
     return query;
   });
+}
+
+export async function getAdminProductCategories(): Promise<ProductCategory[]> {
+  return safeSelect<ProductCategory>('product_categories', (supabase) =>
+    supabase
+      .from('product_categories')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true }),
+  );
 }
 
 export async function getAdminSounds(limit?: number): Promise<Sound[]> {

@@ -7,6 +7,7 @@ import {
   getComments,
   getPosts,
   toggleLike,
+  toggleCommentLike,
 } from '@/lib/supabase/community';
 import { revalidatePath } from 'next/cache';
 
@@ -40,3 +41,10 @@ export async function savePostComment(postId: string, content: string, parentId?
   revalidatePath('/community');
   return data;
 }
+
+export async function toggleCommunityCommentLike(commentId: string) {
+  const result = await toggleCommentLike(commentId);
+  revalidatePath('/community');
+  return result;
+}
+

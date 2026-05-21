@@ -3,6 +3,18 @@
 -- Run AFTER schema.sql in Supabase SQL Editor
 -- ============================================================
 
+-- ─── Product Categories ──────────────────────────────────────
+insert into product_categories (name, slug, sort_order) values
+('Tinh dầu', 'tinh-dau', 1),
+('Nến thơm', 'nen-thom', 2),
+('Sổ viết', 'so-viet', 3),
+('Bộ thư giãn', 'bo-thu-gian', 4),
+('Âm thanh', 'am-thanh', 5)
+on conflict (name) do update set
+  slug = excluded.slug,
+  sort_order = excluded.sort_order,
+  updated_at = now();
+
 -- ─── Products ────────────────────────────────────────────────
 insert into products (slug, name, category, price, old_price, description, details, images, tags, stock, rating) values
 (
