@@ -69,7 +69,7 @@ export default function CheckoutModal({ onClose }: Props) {
     startTransition(async () => {
       try {
         const res = await createCheckoutOrder(formData);
-        if (res?.error) {
+        if (res && 'error' in res) {
           setErrorMsg(res.error);
         } else if (res?.success) {
           clearCart();

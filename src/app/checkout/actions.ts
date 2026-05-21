@@ -151,4 +151,45 @@ export async function createCheckoutOrder(formData: FormData) {
   return { success: true };
 }
 
+export async function saveOrderContact(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
+  if (!user) {
+    redirect('/login');
+  }
+
+  const orderId = getString(formData, 'order_id');
+  const contactPhone = getString(formData, 'contact_phone');
+  const contactFacebook = getString(formData, 'contact_facebook');
+
+  if (!orderId) {
+    redirect('/cart');
+  }
+
+  if (!contactPhone && !contactFacebook) {
+    redirect(
+      `/checkout/${orderId}?message=${encodeURIComponent('Vui lòng nhập ít nhất số điện thoại hoặc Facebook/Zalo')}`,
+    );
+  }
+
+  const { error } = await supabase
+    .from('orders')
+    .update({
+      contact_phone: contactPhone || null,
+      contact_facebook: contactFacebook || null,
+    })
+    .eq('id', orderId)
+    .eq('user_id', user.id);
+
+  if (error) {
+    redirect(
+      `/checkout/${orderId}?message=${encodeURIComponent('Không thể lưu thông tin, vui lòng thử lại')}`,
+    );
+  }
+
+  revalidatePath(`/checkout/${orderId}`);
+  redirect(`/checkout/${orderId}?submitted=1`);
+}
