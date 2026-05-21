@@ -29,8 +29,15 @@ function ProductCard({ product }: { product: Product }) {
       </Link>
 
       <div className={styles.cardBody}>
-        <div className={styles.cardMeta}>
+        <div className={styles.cardMeta} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
           <span>{product.category}</span>
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {product.stock <= 0 ? (
+              <span style={{ color: '#d97706', background: '#fef3c7', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>Hết hàng</span>
+            ) : (
+              <span style={{ color: '#8e6c9f', background: '#f3ebf5', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 800 }}>Đã bán {product.sales_count || 0}</span>
+            )}
+          </div>
         </div>
         <Link href={`/shop/${product.slug}`} className={styles.productName}>
           {product.name}
@@ -50,7 +57,9 @@ function ProductCard({ product }: { product: Product }) {
           </div>
           <button
             type="button"
+            disabled={product.stock <= 0}
             onClick={(e) => {
+              if (product.stock <= 0) return;
               const card = e.currentTarget.closest('article');
               const img = card?.querySelector('img') as HTMLImageElement;
               animateFlyToCart(img);
@@ -69,9 +78,10 @@ function ProductCard({ product }: { product: Product }) {
                 stock: product.stock,
               });
             }}
-            aria-label={`Thêm ${product.name} vào giỏ`}
+            style={product.stock <= 0 ? { background: '#eae2ec', color: '#8a7a94', cursor: 'not-allowed', width: 'auto', padding: '0 12px', fontSize: '12px', fontWeight: 700 } : undefined}
+            aria-label={product.stock <= 0 ? 'Hết hàng' : `Thêm ${product.name} vào giỏ`}
           >
-            <ShoppingCart size={18} />
+            {product.stock <= 0 ? 'Hết hàng' : <ShoppingCart size={18} />}
           </button>
         </div>
       </div>

@@ -1,17 +1,14 @@
 import { getAdminOverview } from '@/lib/admin/data';
 import { formatVnd, timeAgo } from '@/utils/format';
 import Link from 'next/link';
+import RecentOrdersTable from './RecentOrdersTable';
 import styles from './admin.module.css';
 
 export default async function AdminDashboardPage() {
   const overview = await getAdminOverview();
   const cards = [
     { label: 'Sản phẩm', value: overview.counts.products, href: '/admin/shop' },
-    { label: 'Âm thanh', value: overview.counts.sounds, href: '/admin/sounds' },
     { label: 'Bài cộng đồng', value: overview.counts.posts, href: '/admin/community' },
-    { label: 'Bình luận', value: overview.counts.comments, href: '/admin/community' },
-    { label: 'Hội thoại AI', value: overview.counts.chats, href: '/admin/users' },
-    { label: 'Thông báo', value: overview.counts.notifications, href: '/admin/notifications' },
     { label: 'Người dùng', value: overview.counts.users, href: '/admin/users' },
     { label: 'Đơn hàng', value: overview.counts.orders, href: '/admin/shop' },
   ];
@@ -34,7 +31,7 @@ export default async function AdminDashboardPage() {
         ))}
       </section>
 
-      <section className={styles.split}>
+      <section className={`${styles.split} ${styles.dashboardSplit}`}>
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
             <h2>Sản phẩm mới cập nhật</h2>
@@ -63,30 +60,13 @@ export default async function AdminDashboardPage() {
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
             <h2>Đơn hàng gần đây</h2>
-            <Link href="/admin/shop" className={styles.ghostButton}>Xem cửa hàng</Link>
+            <Link href="/admin/shop/orders" className={styles.ghostButton}>Quản lý</Link>
           </div>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Mã</th>
-                <th>Trạng thái</th>
-                <th>Tổng</th>
-              </tr>
-            </thead>
-            <tbody>
-              {overview.recentOrders.map((order) => (
-                <tr key={order.id}>
-                  <td className={styles.truncate}>{order.id}</td>
-                  <td>{order.status}</td>
-                  <td>{formatVnd(order.total)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <RecentOrdersTable initialOrders={overview.recentOrders} />
         </div>
       </section>
 
-      <section className={styles.split}>
+      <section className={`${styles.split} ${styles.dashboardSplit}`}>
         <div className={styles.panel}>
           <div className={styles.panelHeader}>
             <h2>Âm thanh mới</h2>
@@ -125,6 +105,7 @@ export default async function AdminDashboardPage() {
             <thead>
               <tr>
                 <th>Nội dung</th>
+                <th>Người đăng</th>
                 <th>Thời gian</th>
               </tr>
             </thead>
@@ -132,6 +113,9 @@ export default async function AdminDashboardPage() {
               {overview.recentPosts.map((post) => (
                 <tr key={post.id}>
                   <td className={styles.truncate}>{post.content}</td>
+                  <td>
+                    <strong>{post.author?.display_name || 'Ẩn danh'}</strong>
+                  </td>
                   <td>{timeAgo(post.created_at)}</td>
                 </tr>
               ))}

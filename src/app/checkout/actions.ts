@@ -73,16 +73,27 @@ export async function createCheckoutOrder(formData: FormData) {
     .eq('is_active', true);
 
   if (productsError || !products || products.length !== productIds.length) {
-    return fail('Một số sản phẩm không còn khả dụng');
+    return fail('Một số sản phẩm không còn khả dụng.');
   }
 
   const productsById = new Map(products.map((product) => [product.id, product]));
-  const orderItems = items.map((item) => {
+  
+  // Validate stock level for each item first
+  for (const item of items) {
     const product = productsById.get(item.id);
-    if (!product || product.stock < item.quantity) {
-      throw new Error('Một số sản phẩm không đủ số lượng tồn kho');
+    if (!product) {
+      return fail('Không tìm thấy thông tin sản phẩm.');
     }
+    if (product.stock <= 0) {
+      return fail(`Sản phẩm "${product.name}" đã hết hàng.`);
+    }
+    if (product.stock < item.quantity) {
+      return fail(`Sản phẩm "${product.name}" chỉ còn ${product.stock} sản phẩm trong kho (bạn chọn mua ${item.quantity}).`);
+    }
+  }
 
+  const orderItems = items.map((item) => {
+    const product = productsById.get(item.id)!;
     return {
       product_id: product.id,
       product_name: product.name,

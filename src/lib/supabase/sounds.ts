@@ -1,6 +1,19 @@
 import type { Sound } from '@/types/database';
 import { createPublicClient } from '@/utils/supabase/server';
 
+function resolveAudioUrl(url: string, name: string): string {
+  if (url && url.includes('pixabay.com')) {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('mưa')) return '/audio/rain.wav';
+    if (lowerName.includes('rừng') || lowerName.includes('hồ')) return '/audio/forest.wav';
+    if (lowerName.includes('sóng') || lowerName.includes('ấm') || lowerName.includes('bể')) return '/audio/ocean.wav';
+    if (lowerName.includes('suối') || lowerName.includes('năng lượng')) return '/audio/stream.wav';
+    if (lowerName.includes('gió') || lowerName.includes('thiền')) return '/audio/bowl.wav';
+    if (lowerName.includes('lửa') || lowerName.includes('truyện') || lowerName.includes('núi')) return '/audio/campfire.wav';
+  }
+  return url;
+}
+
 export async function getSounds(category?: string): Promise<Sound[]> {
   try {
     const supabase = createPublicClient();
@@ -19,7 +32,11 @@ export async function getSounds(category?: string): Promise<Sound[]> {
       console.warn('Error fetching sounds:', error.message);
       return [];
     }
-    return data ?? [];
+    const list = data ?? [];
+    return list.map((s) => ({
+      ...s,
+      audio_url: resolveAudioUrl(s.audio_url, s.name),
+    }));
   } catch (err) {
     console.warn('Network error fetching sounds. Returning empty fallback array.', err);
     return [];
@@ -85,7 +102,10 @@ export async function getFeaturedSounds(limit = 4): Promise<Sound[]> {
     const dateStr = formatter.format(new Date());
 
     const rng = seededRandom(dateStr);
-    const shuffled = [...data];
+    const shuffled = data.map((s) => ({
+      ...s,
+      audio_url: resolveAudioUrl(s.audio_url, s.name),
+    }));
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(rng() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];

@@ -101,8 +101,8 @@ export default function CheckoutModal({ onClose }: Props) {
         {isSuccess ? (
           <div style={{ padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
             <CheckCircle size={64} color="#4ade80" />
-            <h2 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: '#f3f4f6' }}>Đã đặt hàng thành công!</h2>
-            <p style={{ fontSize: '15px', color: '#9ca3af', lineHeight: 1.5, maxWidth: '320px', margin: '0 auto' }}>
+            <h2 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: '#2f2638' }}>Đã đặt hàng thành công!</h2>
+            <p style={{ fontSize: '15px', color: '#5f5069', lineHeight: 1.5, maxWidth: '320px', margin: '0 auto' }}>
               Cảm ơn bạn đã đặt hàng. Admin sẽ liên hệ với bạn trong thời gian sớm nhất để xác nhận.
             </p>
             <button 

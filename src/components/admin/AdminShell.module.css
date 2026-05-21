@@ -78,6 +78,37 @@
   color: #6e4c98;
 }
 
+.submenu {
+  display: grid;
+  gap: 4px;
+  margin-top: 2px;
+  margin-bottom: 6px;
+}
+
+.subNavItem {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  padding: 0 12px 0 28px;
+  color: #766882;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+.subNavItem:hover {
+  background: #fdfafc;
+  color: #4a2e74;
+}
+
+.subActive {
+  background: #f6f0fa;
+  color: #7f63a3;
+}
+
 .sidebarFooter {
   margin-top: auto;
   padding-top: 16px;

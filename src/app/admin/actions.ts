@@ -95,6 +95,18 @@ export async function toggleProductActive(formData: FormData) {
   revalidatePath('/shop/[slug]', 'page');
 }
 
+export async function deleteProduct(id: string) {
+  await requireAdmin();
+  const supabase = createAdminSupabaseClient();
+  await supabase.from('products').delete().eq('id', id);
+
+  revalidatePath('/admin');
+  revalidatePath('/admin/shop');
+  revalidatePath('/shop');
+  revalidatePath('/shop/[slug]', 'page');
+  return { ok: true };
+}
+
 export async function saveProductCategory(formData: FormData) {
   await requireAdmin();
   const supabase = createAdminSupabaseClient();
@@ -143,6 +155,38 @@ export async function toggleProductCategoryActive(formData: FormData) {
   revalidatePath('/shop/[slug]', 'page');
 }
 
+export async function deleteProductCategory(id: string) {
+  await requireAdmin();
+  const supabase = createAdminSupabaseClient();
+  await supabase.from('product_categories').delete().eq('id', id);
+
+  revalidatePath('/admin');
+  revalidatePath('/admin/shop');
+  revalidatePath('/shop');
+  revalidatePath('/shop/[slug]', 'page');
+  return { ok: true };
+}
+
+export async function updateCategorySortOrders(orders: { id: string; sort_order: number }[]) {
+  await requireAdmin();
+  const supabase = createAdminSupabaseClient();
+  
+  await Promise.all(
+    orders.map((order) =>
+      supabase
+        .from('product_categories')
+        .update({ sort_order: order.sort_order, updated_at: new Date().toISOString() })
+        .eq('id', order.id)
+    )
+  );
+
+  revalidatePath('/admin');
+  revalidatePath('/admin/shop');
+  revalidatePath('/shop');
+  revalidatePath('/shop/[slug]', 'page');
+  return { ok: true };
+}
+
 export async function saveSound(formData: FormData) {
   await requireAdmin();
   const supabase = createAdminSupabaseClient();
@@ -183,19 +227,147 @@ export async function toggleSoundActive(formData: FormData) {
   revalidatePath('/soundscape');
 }
 
-export async function updateOrderStatus(formData: FormData) {
+export async function deleteSound(id: string) {
   await requireAdmin();
   const supabase = createAdminSupabaseClient();
-  const id = String(formData.get('id'));
-  const status = String(formData.get('status'));
+  await supabase.from('sounds').delete().eq('id', id);
 
-  await supabase
+  revalidatePath('/admin');
+  revalidatePath('/admin/sounds');
+  revalidatePath('/soundscape');
+  return { ok: true };
+}
+
+const orderStatuses = new Set(['pending', 'completed', 'cancelled']);
+
+type UpdateOrderStatusResult =
+  | { ok: true }
+  | { ok: false; message: string };
+
+export async function updateOrderStatus(id: string, status: string): Promise<UpdateOrderStatusResult> {
+  await requireAdmin();
+  if (!id || !orderStatuses.has(status)) {
+    return { ok: false, message: 'Trạng thái đơn hàng không hợp lệ.' };
+  }
+
+  const supabase = createAdminSupabaseClient();
+
+  // 1. Fetch current order status to prevent double deduction / restore
+  const { data: currentOrder, error: fetchOrderError } = await supabase
+    .from('orders')
+    .select('status')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (fetchOrderError || !currentOrder) {
+    return { ok: false, message: 'Không tìm thấy đơn hàng.' };
+  }
+
+  const previousStatus = currentOrder.status;
+
+  // 2. Perform inventory adjustments
+  if (previousStatus !== 'completed' && status === 'completed') {
+    // Transitioning to COMPLETED: deduct stock
+    // Fetch items
+    const { data: items, error: itemsError } = await supabase
+      .from('order_items')
+      .select('product_id, quantity, product_name')
+      .eq('order_id', id);
+
+    if (itemsError || !items) {
+      return { ok: false, message: 'Không thể đọc chi tiết sản phẩm của đơn hàng.' };
+    }
+
+    // Check stocks first
+    const productIds = items.map((item) => item.product_id);
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('id, name, stock, sales_count')
+      .in('id', productIds);
+
+    if (productsError || !products) {
+      return { ok: false, message: 'Không thể kiểm tra tồn kho sản phẩm.' };
+    }
+
+    const productsById = new Map(products.map((p) => [p.id, p]));
+
+    // Validate all items have enough stock
+    for (const item of items) {
+      const product = productsById.get(item.product_id);
+      if (!product) {
+        return { ok: false, message: `Sản phẩm "${item.product_name}" không tồn tại trong hệ thống.` };
+      }
+      if (product.stock < item.quantity) {
+        return { ok: false, message: `Sản phẩm "${product.name}" chỉ còn ${product.stock} trong kho, không đủ để hoàn thành đơn hàng (cần ${item.quantity}).` };
+      }
+    }
+
+    // Deduct stocks & increase sales count
+    for (const item of items) {
+      const product = productsById.get(item.product_id)!;
+      const { error: updateStockErr } = await supabase
+        .from('products')
+        .update({ 
+          stock: Math.max(0, product.stock - item.quantity),
+          sales_count: (product.sales_count || 0) + item.quantity
+        })
+        .eq('id', item.product_id);
+
+      if (updateStockErr) {
+        return { ok: false, message: `Không thể cập nhật kho của sản phẩm "${product.name}".` };
+      }
+    }
+  } else if (previousStatus === 'completed' && status !== 'completed') {
+    // Transitioning AWAY from COMPLETED (e.g. cancelled or pending): add stock back & decrease sales count
+    const { data: items, error: itemsError } = await supabase
+      .from('order_items')
+      .select('product_id, quantity, product_name')
+      .eq('order_id', id);
+
+    if (itemsError || !items) {
+      return { ok: false, message: 'Không thể đọc chi tiết sản phẩm của đơn hàng.' };
+    }
+
+    const productIds = items.map((item) => item.product_id);
+    const { data: products, error: productsError } = await supabase
+      .from('products')
+      .select('id, name, stock, sales_count')
+      .in('id', productIds);
+
+    if (productsError || !products) {
+      return { ok: false, message: 'Không thể kiểm tra tồn kho sản phẩm.' };
+    }
+
+    const productsById = new Map(products.map((p) => [p.id, p]));
+
+    // Add back stocks & decrease sales count
+    for (const item of items) {
+      const product = productsById.get(item.product_id);
+      if (product) {
+        await supabase
+          .from('products')
+          .update({ 
+            stock: product.stock + item.quantity,
+            sales_count: Math.max(0, (product.sales_count || 0) - item.quantity)
+          })
+          .eq('id', item.product_id);
+      }
+    }
+  }
+
+  // 3. Finally update order status
+  const { error } = await supabase
     .from('orders')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', id);
 
+  if (error) {
+    return { ok: false, message: 'Không thể cập nhật trạng thái đơn hàng.' };
+  }
+
   revalidatePath('/admin');
-  revalidatePath('/admin/shop');
+  revalidatePath('/admin/shop/orders');
+  return { ok: true };
 }
 
 export async function deletePost(formData: FormData) {
@@ -322,6 +494,17 @@ export async function createNotification(formData: FormData) {
   revalidatePath('/admin');
   revalidatePath('/admin/notifications');
   revalidatePath('/notifications');
+}
+
+export async function deleteNotification(id: string) {
+  await requireAdmin();
+  const supabase = createAdminSupabaseClient();
+  await supabase.from('notifications').delete().eq('id', id);
+
+  revalidatePath('/admin');
+  revalidatePath('/admin/notifications');
+  revalidatePath('/notifications');
+  return { ok: true };
 }
 
 export async function updateProfileRole(formData: FormData) {

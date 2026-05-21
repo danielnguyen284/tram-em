@@ -90,12 +90,30 @@ export async function getAdminProductCategories(): Promise<ProductCategory[]> {
   );
 }
 
+export function resolveAudioUrl(url: string, name: string): string {
+  if (url && url.includes('pixabay.com')) {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('mưa')) return '/audio/rain.wav';
+    if (lowerName.includes('rừng') || lowerName.includes('hồ')) return '/audio/forest.wav';
+    if (lowerName.includes('sóng') || lowerName.includes('ấm') || lowerName.includes('bể')) return '/audio/ocean.wav';
+    if (lowerName.includes('suối') || lowerName.includes('năng lượng')) return '/audio/stream.wav';
+    if (lowerName.includes('gió') || lowerName.includes('thiền')) return '/audio/bowl.wav';
+    if (lowerName.includes('lửa') || lowerName.includes('truyện') || lowerName.includes('núi')) return '/audio/campfire.wav';
+  }
+  return url;
+}
+
 export async function getAdminSounds(limit?: number): Promise<Sound[]> {
-  return safeSelect<Sound>('sounds', (supabase) => {
+  const sounds = await safeSelect<Sound>('sounds', (supabase) => {
     let query = supabase.from('sounds').select('*').order('sort_order', { ascending: true });
     if (limit) query = query.limit(limit);
     return query;
   });
+
+  return sounds.map((s) => ({
+    ...s,
+    audio_url: resolveAudioUrl(s.audio_url, s.name),
+  }));
 }
 
 export async function getAdminPosts(limit?: number): Promise<Post[]> {
@@ -125,12 +143,13 @@ export async function getCommunityModerationTerms(): Promise<CommunityModeration
   );
 }
 
-export async function getAdminOrders(limit?: number): Promise<Order[]> {
+export async function getAdminOrders(limit?: number, status?: string): Promise<Order[]> {
   return safeSelect<Order>('orders', (supabase) => {
     let query = supabase
       .from('orders')
       .select('*, items:order_items(*)')
       .order('created_at', { ascending: false });
+    if (status && status !== 'all') query = query.eq('status', status);
     if (limit) query = query.limit(limit);
     return query;
   });

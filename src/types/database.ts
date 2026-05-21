@@ -13,6 +13,7 @@ export type Product = {
   images: string[];
   tags: string[];
   stock: number;
+  sales_count: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;

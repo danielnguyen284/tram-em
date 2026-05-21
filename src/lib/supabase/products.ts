@@ -14,6 +14,7 @@ const productPublicFields = [
   'images',
   'tags',
   'stock',
+  'sales_count',
   'is_active',
   'created_at',
   'updated_at',

@@ -12,10 +12,11 @@ import styles from './product-detail.module.css';
 
 export default function ProductDetailClient({ product }: { product: Product }) {
   const [selectedImage, setSelectedImage] = useState(product.images[0]);
-  const [quantity, setQuantity] = useState(1);
+  const isOutOfStock = product.stock <= 0;
+  const [quantity, setQuantity] = useState(isOutOfStock ? 0 : 1);
   const addItem = useCartStore((state) => state.addItem);
 
-  const decreaseQuantity = () => setQuantity((current) => Math.max(1, current - 1));
+  const decreaseQuantity = () => setQuantity((current) => Math.max(isOutOfStock ? 0 : 1, current - 1));
   const increaseQuantity = () => setQuantity((current) => Math.min(product.stock, current + 1));
 
   return (
@@ -74,22 +75,28 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
           <div className={styles.quantityRow}>
             <span>Số lượng</span>
-            <div className={styles.stepper}>
-              <button type="button" onClick={decreaseQuantity} aria-label="Giảm số lượng">
+            <div className={styles.stepper} style={isOutOfStock ? { opacity: 0.5, pointerEvents: 'none' } : undefined}>
+              <button type="button" onClick={decreaseQuantity} disabled={isOutOfStock} aria-label="Giảm số lượng">
                 <Minus size={16} />
               </button>
               <strong>{quantity}</strong>
-              <button type="button" onClick={increaseQuantity} aria-label="Tăng số lượng">
+              <button type="button" onClick={increaseQuantity} disabled={isOutOfStock} aria-label="Tăng số lượng">
                 <Plus size={16} />
               </button>
             </div>
-            <small>Còn {product.stock} sản phẩm</small>
+            {isOutOfStock ? (
+              <small style={{ color: '#dc2626', fontWeight: 900 }}>Đã hết hàng • Đã bán {product.sales_count || 0}</small>
+            ) : (
+              <small>Còn {product.stock} sản phẩm • Đã bán {product.sales_count || 0}</small>
+            )}
           </div>
 
           <button
             type="button"
             className={styles.addButton}
+            disabled={isOutOfStock}
             onClick={(e) => {
+              if (isOutOfStock) return;
               const section = e.currentTarget.closest('section');
               const img = section?.querySelector('img') as HTMLImageElement;
               animateFlyToCart(img);
@@ -108,9 +115,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                 stock: product.stock,
               }, quantity);
             }}
+            style={isOutOfStock ? { background: '#eae2ec', color: '#8a7a94', cursor: 'not-allowed', boxShadow: 'none', transform: 'none' } : undefined}
           >
             <ShoppingCart size={20} />
-            Thêm vào giỏ hàng
+            {isOutOfStock ? 'Sản phẩm đã hết hàng' : 'Thêm vào giỏ hàng'}
           </button>
 
           <div className={styles.benefits}>
