@@ -1,17 +1,22 @@
 'use client';
 
-import type { ChatThread, ChatMessage } from '@/types/database';
+import type { ChatThread, ChatMessage, Product } from '@/types/database';
 import {
   Clock3,
   Heart,
   MessageCircle,
   Plus,
   Send,
+  ShoppingCart,
   Trash2,
 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { formatVnd } from '@/utils/format';
+import { useCartStore } from '@/store/useCartStore';
+import { animateFlyToCart } from '@/utils/animations';
 import Image from 'next/image';
+import Link from 'next/link';
 import styles from './ai.module.css';
 
 const PROMPTS = [
@@ -19,24 +24,6 @@ const PROMPTS = [
   'Hình như mình đang căng thẳng',
   'Mình muốn được an ủi',
 ];
-
-function makeFallbackReply(input: string) {
-  const lower = input.toLowerCase();
-
-  if (lower.includes('bỏ') || lower.includes('chia tay') || lower.includes('người yêu')) {
-    return 'Nghe như chuyện này đang chạm vào cảm giác mất mát và bị bỏ lại, nên buồn nhiều là điều rất dễ hiểu. Lúc này bạn không cần phải mạnh ngay; thử để mình ở cạnh cảm giác đó một chút, rồi kể mình nghe phần đau nhất là nhớ họ, hụt hẫng, hay thấy mình không đủ tốt?';
-  }
-
-  if (lower.includes('ngủ') || lower.includes('mệt')) {
-    return 'Mình nghe thấy có vẻ cơ thể và tâm trí bạn đang cần được nghỉ. Thử đặt tên cho cảm giác đó trước, rồi mình cùng bạn chọn một việc nhỏ để nhẹ hơn.';
-  }
-
-  if (lower.includes('lo') || lower.includes('sợ') || lower.includes('áp lực')) {
-    return 'Cảm giác lo lắng thường lớn hơn khi mình giữ một mình. Bạn có muốn kể điều đang làm bạn áp lực nhất ngay lúc này không?';
-  }
-
-  return `Mình nghe thấy điều bạn vừa nói: "${input.slice(0, 80)}". Có vẻ cảm xúc trong đó đang khá nặng, mình sẽ ở đây để nghe bạn nói chậm lại từng chút một.`;
-}
 
 function formatThreadTimestamp(value: string) {
   const date = new Date(value);
@@ -69,13 +56,81 @@ type Props = {
   initialMessages: ChatMessage[];
   isAuthenticated: boolean;
   userId: string | null;
+  products: Product[];
 };
+
+function getProductSlug(content: string) {
+  return content.match(/\/shop\/([a-z0-9-]+)/i)?.[1] ?? null;
+}
+
+function hideProductLinks(content: string) {
+  return content
+    .replace(/\s*(?:link|đường dẫn)\s*:\s*\/shop\/[a-z0-9-]+/gi, '')
+    .replace(/\s*\/shop\/[a-z0-9-]+/gi, '')
+    .replace(/\s*(?:link|đường dẫn)\s*:\s*$/gi, '')
+    .replace(/\s+([.,!?])/g, '$1')
+    .trim();
+}
+
+function ChatProductCard({ product }: { product: Product }) {
+  const addItem = useCartStore((state) => state.addItem);
+
+  return (
+    <div className={styles.productSuggestion}>
+      <Link href={`/shop/${product.slug}`} className={styles.productSuggestionImage} aria-label={`Xem ${product.name}`}>
+        <Image
+          src={product.images[0] ?? '/images/logo.png'}
+          alt={product.name}
+          fill
+          sizes="160px"
+          className={styles.productImage}
+        />
+      </Link>
+      <div className={styles.productSuggestionBody}>
+        <span>{product.category}</span>
+        <Link href={`/shop/${product.slug}`} className={styles.productSuggestionName}>
+          {product.name}
+        </Link>
+        <p>{product.description}</p>
+        <div className={styles.productSuggestionFooter}>
+          <strong>{formatVnd(product.price)}</strong>
+          <button
+            type="button"
+            aria-label={`Thêm ${product.name} vào giỏ`}
+            onClick={(event) => {
+              const card = event.currentTarget.closest(`.${styles.productSuggestion}`);
+              const img = card?.querySelector('img') as HTMLImageElement | null;
+              if (img) animateFlyToCart(img);
+
+              addItem({
+                id: product.id,
+                slug: product.slug,
+                name: product.name,
+                category: product.category,
+                price: product.price,
+                oldPrice: product.old_price ?? undefined,
+                description: product.description,
+                details: product.details,
+                images: product.images,
+                tags: product.tags,
+                stock: product.stock,
+              });
+            }}
+          >
+            <ShoppingCart size={16} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function AiClient({
   initialThreads,
   initialMessages,
   isAuthenticated,
   userId,
+  products,
 }: Props) {
   const [threads, setThreads] = useState<ChatThread[]>(initialThreads);
   const [activeThreadId, setActiveThreadId] = useState<string | null>(initialThreads[0]?.id ?? null);
@@ -89,6 +144,10 @@ export default function AiClient({
   const activeThread = useMemo(
     () => threads.find((t) => t.id === activeThreadId) ?? threads[0] ?? null,
     [activeThreadId, threads],
+  );
+  const productsBySlug = useMemo(
+    () => new Map(products.map((product) => [product.slug, product])),
+    [products],
   );
   const hasUserMessage = messages.some((message) => message.role === 'user');
   const canStartNewThread = (!activeThread || hasUserMessage) && !isSending;
@@ -170,8 +229,6 @@ export default function AiClient({
       setMessages((prev) => [...prev, userMsg, assistantMsg]);
       setDraft('');
 
-      let replyText = makeFallbackReply(text);
-
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
         credentials: 'same-origin',
@@ -179,10 +236,37 @@ export default function AiClient({
         body: JSON.stringify({ message: text, history }),
       });
       const payload = (await response.json().catch(() => ({}))) as AiChatResponse;
-      if (!response.ok) {
+      const replyText = payload.reply?.trim();
+
+      if (!response.ok || !replyText) {
         console.error('AI chat API error:', payload.error ?? response.statusText);
+        setMessages((prev) => prev.filter((message) => message.id !== assistantMsg.id));
+
+        const threadUpdatedAt = new Date().toISOString();
+
+        await supabase.from('chat_messages').insert({
+          thread_id: targetThread.id,
+          role: 'user',
+          content: text,
+        });
+
+        const threadPatch = isFirstUserMessage
+          ? { title: text.slice(0, 34), updated_at: threadUpdatedAt }
+          : { updated_at: threadUpdatedAt };
+
+        await supabase
+          .from('chat_threads')
+          .update(threadPatch)
+          .eq('id', targetThread.id);
+
+        setThreads((prev) =>
+          prev.map((thread) =>
+            thread.id === targetThread.id ? { ...thread, ...threadPatch } : thread,
+          ),
+        );
+        setActiveThreadId(targetThread.id);
+        return;
       }
-      replyText = payload.reply?.trim() || replyText;
 
       const revealStep = replyText.length > 100 ? 3 : 2;
       for (let index = revealStep; index < replyText.length + revealStep; index += revealStep) {
@@ -346,30 +430,37 @@ export default function AiClient({
             </div>
 
             <div className={styles.messages} aria-live="polite" aria-busy={isSending}>
-              {messages.map((message) => (
-                <article
-                  key={message.id}
-                  className={`${styles.message} ${
-                    message.role === 'user' ? styles.userMessage : styles.assistantMessage
-                  }`}
-                >
-                  {message.role === 'assistant' && !message.content ? (
-                    <p className={styles.typingIndicator} aria-label="Em AI đang soạn">
-                      <span />
-                      <span />
-                      <span />
-                    </p>
-                  ) : (
-                    <p>{message.content}</p>
-                  )}
-                  <time>
-                    {new Intl.DateTimeFormat('vi-VN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }).format(new Date(message.created_at))}
-                  </time>
-                </article>
-              ))}
+              {messages.map((message) => {
+                const productSlug = message.role === 'assistant' ? getProductSlug(message.content) : null;
+                const suggestedProduct = productSlug ? productsBySlug.get(productSlug) : null;
+                const displayContent = suggestedProduct ? hideProductLinks(message.content) : message.content;
+
+                return (
+                  <article
+                    key={message.id}
+                    className={`${styles.message} ${
+                      message.role === 'user' ? styles.userMessage : styles.assistantMessage
+                    }`}
+                  >
+                    {message.role === 'assistant' && !message.content ? (
+                      <p className={styles.typingIndicator} aria-label="Em AI đang soạn">
+                        <span />
+                        <span />
+                        <span />
+                      </p>
+                    ) : (
+                      <p>{displayContent}</p>
+                    )}
+                    {suggestedProduct && <ChatProductCard product={suggestedProduct} />}
+                    <time>
+                      {new Intl.DateTimeFormat('vi-VN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      }).format(new Date(message.created_at))}
+                    </time>
+                  </article>
+                );
+              })}
               {messages.length === 0 && (
                 <article className={`${styles.message} ${styles.assistantMessage}`}>
                   <p>Tạo cuộc trò chuyện mới để bắt đầu nhé 💜</p>

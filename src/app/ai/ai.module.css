@@ -1,5 +1,5 @@
 .page {
-  height: calc(100dvh - 164px);
+  height: calc(100dvh - 128px);
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -273,6 +273,103 @@
   align-self: flex-start;
 }
 
+.productSuggestion {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: rgba(171, 147, 205, 0.08);
+}
+
+.productSuggestionImage {
+  position: relative;
+  display: block;
+  width: 96px;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--color-primary-soft);
+}
+
+.productImage {
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.productSuggestion:hover .productImage {
+  transform: scale(1.04);
+}
+
+.productSuggestionBody {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.productSuggestionBody span {
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.productSuggestionName {
+  color: var(--color-text-primary);
+  font-size: var(--text-small);
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.productSuggestionName:hover {
+  color: var(--color-primary);
+}
+
+.productSuggestionBody p {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.productSuggestionFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.productSuggestionFooter strong {
+  color: var(--color-text-primary);
+  font-size: var(--text-small);
+  font-weight: 900;
+}
+
+.productSuggestionFooter button {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
+  transition: transform 0.2s ease;
+}
+
+.productSuggestionFooter button:hover {
+  transform: translateY(-1px);
+}
+
 .historyPanel {
   display: flex;
   flex-direction: column;
@@ -529,7 +626,7 @@
 
 @media (max-width: 820px) {
   .page {
-    height: calc(100dvh - 112px);
+    height: calc(100dvh - 90px);
     min-height: 0;
     margin: -8px -8px 0;
     padding: 6px 8px 0;
@@ -620,6 +717,21 @@
 }
 
 @media (max-width: 520px) {
+  .productSuggestion {
+    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .productSuggestionImage {
+    width: 72px;
+  }
+
+  .productSuggestionFooter {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+
   .promptRow {
     gap: 8px;
   }

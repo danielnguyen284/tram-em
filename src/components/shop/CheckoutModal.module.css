@@ -223,6 +223,49 @@
   transform: translateY(-1px);
 }
 
+.successState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin: 24px;
+  padding: 42px 24px;
+  border: 1px solid var(--color-border);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(74, 222, 128, 0.14), transparent 38%),
+    var(--color-bg-page);
+  text-align: center;
+}
+
+.successIcon {
+  color: #22c55e;
+  filter: drop-shadow(0 8px 18px rgba(34, 197, 94, 0.22));
+}
+
+.successState h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.successState p {
+  max-width: 360px;
+  margin: 0 auto;
+  color: var(--color-text-secondary);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.successButton {
+  width: 180px;
+  margin-top: 18px;
+  padding: 0 24px;
+}
+
 @media (max-width: 640px) {
   .body {
     grid-template-columns: 1fr;

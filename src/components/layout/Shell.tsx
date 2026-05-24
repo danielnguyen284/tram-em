@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import TopNav from './TopNav';
 import Sidebar from './Sidebar';
 import MusicPlayer from './MusicPlayer';
@@ -8,6 +9,8 @@ import styles from './Shell.module.css';
 
 export default function Shell({ children }: { children: React.ReactNode }) {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const pathname = usePathname();
+  const isAiPage = pathname === '/ai';
 
   return (
     <div className={styles.container}>
@@ -17,7 +20,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
           isMobileOpen={mobileSidebarOpen}
           onMobileClose={() => setMobileSidebarOpen(false)}
         />
-        <main className={styles.content}>
+        <main className={`${styles.content} ${isAiPage ? styles.aiContent : ''}`}>
           {children}
         </main>
       </div>

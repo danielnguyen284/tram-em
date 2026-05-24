@@ -75,8 +75,8 @@ export default function CheckoutModal({ onClose }: Props) {
           clearCart();
           setIsSuccess(true);
         }
-      } catch (err: any) {
-        setErrorMsg(err.message || 'Có lỗi xảy ra');
+      } catch (err: unknown) {
+        setErrorMsg(err instanceof Error ? err.message : 'Có lỗi xảy ra');
       }
     });
   };
@@ -99,16 +99,15 @@ export default function CheckoutModal({ onClose }: Props) {
         </div>
 
         {isSuccess ? (
-          <div style={{ padding: '40px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-            <CheckCircle size={64} color="#4ade80" />
-            <h2 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: '#2f2638' }}>Đã đặt hàng thành công!</h2>
-            <p style={{ fontSize: '15px', color: '#5f5069', lineHeight: 1.5, maxWidth: '320px', margin: '0 auto' }}>
+          <div className={styles.successState}>
+            <CheckCircle size={64} className={styles.successIcon} />
+            <h2>Đã đặt hàng thành công!</h2>
+            <p>
               Cảm ơn bạn đã đặt hàng. Admin sẽ liên hệ với bạn trong thời gian sớm nhất để xác nhận.
             </p>
             <button 
               type="button" 
-              className={styles.submitBtn} 
-              style={{ marginTop: '24px', width: '180px', padding: '0 24px' }} 
+              className={`${styles.submitBtn} ${styles.successButton}`}
               onClick={() => {
                 onClose();
                 router.push('/');
