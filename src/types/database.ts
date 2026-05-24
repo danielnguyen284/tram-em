@@ -10,6 +10,12 @@ export type Product = {
   old_price: number | null;
   description: string;
   details: string[];
+  detail_story: string | null;
+  usage_tips: string[];
+  suitable_for: string[];
+  shipping_note: string | null;
+  return_note: string | null;
+  quality_note: string | null;
   images: string[];
   tags: string[];
   stock: number;

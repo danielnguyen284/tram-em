@@ -28,7 +28,9 @@
 
 .gallery,
 .summary,
-.detailSection {
+.detailSection,
+.serviceSection,
+.relatedSection {
   border: 1px solid var(--color-border);
   border-radius: 20px;
   background: var(--color-bg-card);
@@ -51,31 +53,77 @@
   background: var(--color-primary-soft);
 }
 
-.image,
-.thumbnailImage {
+.image {
   object-fit: cover;
+  animation: galleryImageIn 0.42s ease both;
 }
 
-.thumbnails {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+@keyframes galleryImageIn {
+  from {
+    opacity: 0;
+    transform: scale(1.025);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-.thumbnails button {
-  position: relative;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border: 2px solid transparent;
-  border-radius: 12px;
-  background: var(--color-primary-soft);
-  transition: border-color 0.2s ease, transform 0.2s ease;
+.galleryNav {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--color-primary);
+  box-shadow: 0 10px 24px rgba(61, 45, 80, 0.2);
+  transform: translateY(-50%);
+  transition: background-color 0.2s ease, transform 0.2s ease;
 }
 
-.thumbnails button:hover,
-.thumbnails .activeThumbnail {
-  border-color: var(--color-primary);
-  transform: translateY(-1px);
+.galleryNav:hover {
+  background: #fff;
+  transform: translateY(-50%) scale(1.04);
+}
+
+.galleryNavPrev {
+  left: 14px;
+}
+
+.galleryNavNext {
+  right: 14px;
+}
+
+.galleryDots {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  left: 16px;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+}
+
+.galleryDots button {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 2px 8px rgba(61, 45, 80, 0.22);
+}
+
+.galleryDots .activeDot {
+  width: 22px;
+  border-radius: 999px;
+  background: var(--color-primary);
 }
 
 .summary {
@@ -233,20 +281,102 @@
   color: var(--color-primary);
 }
 
-.detailSection {
+.summaryGuides {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.summaryGuides div {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 4px 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--color-bg-page);
+}
+
+.summaryGuides svg {
+  grid-row: span 2;
+  margin-top: 2px;
+  color: var(--color-primary);
+}
+
+.summaryGuides span {
+  color: var(--color-text-primary);
+  font-size: var(--text-small);
+  font-weight: 900;
+}
+
+.summaryGuides p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.detailSection,
+.relatedSection {
   padding: 24px;
 }
 
-.detailSection h2 {
-  margin-bottom: 16px;
+.sectionHeader {
+  max-width: 720px;
+  margin-bottom: 18px;
+}
+
+.sectionHeader span {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-primary);
+  font-size: var(--text-tiny);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.sectionHeader h2 {
   color: var(--color-text-primary);
   font-size: var(--text-h2);
   font-weight: 900;
 }
 
+.detailContent {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 16px;
+}
+
+.storyBlock,
+.infoBlock {
+  padding: 18px;
+  border-radius: 16px;
+  background: var(--color-bg-page);
+}
+
+.storyBlock {
+  grid-row: span 2;
+}
+
+.storyBlock h3,
+.infoBlock h3,
+.serviceItem h3 {
+  margin-bottom: 8px;
+  color: var(--color-text-primary);
+  font-size: var(--text-body);
+  font-weight: 900;
+}
+
+.storyBlock p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-body);
+  font-weight: 650;
+  line-height: 1.75;
+}
+
 .detailGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -254,9 +384,9 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding: 14px;
+  padding: 12px;
   border-radius: 14px;
-  background: var(--color-bg-page);
+  background: var(--color-bg-card);
 }
 
 .detailItem span {
@@ -275,23 +405,150 @@
   line-height: 1.55;
 }
 
+.noteList {
+  display: grid;
+  gap: 10px;
+}
+
+.noteList p {
+  position: relative;
+  padding-left: 18px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.noteList p::before {
+  content: '';
+  position: absolute;
+  top: 9px;
+  left: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.serviceSection {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  padding: 18px;
+}
+
+.serviceItem {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 12px;
+  min-width: 0;
+}
+
+.serviceItem svg {
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  border-radius: 10px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.serviceItem p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.relatedGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.relatedCard {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-bg-page);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.relatedCard:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.relatedImage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--color-primary-soft);
+}
+
+.relatedImage img {
+  object-fit: cover;
+}
+
+.relatedCard span {
+  color: var(--color-text-muted);
+  font-size: var(--text-tiny);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.relatedCard strong {
+  color: var(--color-text-primary);
+  font-size: var(--text-body);
+  font-weight: 900;
+  line-height: 1.3;
+}
+
+.relatedCard p {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  font-weight: 700;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.relatedCard small {
+  margin-top: auto;
+  color: var(--color-text-primary);
+  font-size: var(--text-body);
+  font-weight: 900;
+}
+
 @media (max-width: 980px) {
   .productLayout {
     grid-template-columns: 1fr;
   }
 
-  .detailGrid {
+  .detailContent,
+  .serviceSection,
+  .relatedGrid {
     grid-template-columns: 1fr;
+  }
+
+  .storyBlock {
+    grid-row: auto;
   }
 }
 
 @media (max-width: 560px) {
   .summary,
-  .detailSection {
+  .detailSection,
+  .relatedSection {
     padding: 18px;
   }
 
-  .thumbnails {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }

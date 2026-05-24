@@ -84,6 +84,24 @@ insert into products (slug, name, category, price, old_price, description, detai
   31, 4.8
 );
 
+update products
+set
+  detail_story = description || ' Đây là phần nội dung chi tiết có thể chỉnh trong admin để mô tả rõ hơn cảm giác, cách dùng và lý do sản phẩm phù hợp với khách hàng.',
+  usage_tips = array[
+    'Dùng trong khoảng nghỉ ngắn để tạo một nhịp chăm sóc bản thân.',
+    'Kết hợp với vài phút hít thở chậm hoặc một không gian yên tĩnh.',
+    'Bắt đầu với lượng vừa đủ và điều chỉnh theo cảm giác của bạn.'
+  ],
+  suitable_for = array[
+    'Người muốn có một thói quen thư giãn nhẹ nhàng',
+    'Người thích những món dễ dùng trong sinh hoạt hằng ngày',
+    'Người đang tìm một món quà nhỏ có cảm giác được chăm sóc'
+  ],
+  shipping_note = 'Đóng gói chắc chắn, ưu tiên giữ sản phẩm nguyên vẹn khi tới tay bạn.',
+  return_note = 'Nếu sản phẩm bị lỗi do vận chuyển hoặc sản xuất, Trạm Êm hỗ trợ đổi trả theo chính sách.',
+  quality_note = 'Mỗi đơn được rà lại số lượng, ảnh sản phẩm và thông tin nhận hàng trước khi bàn giao.'
+where detail_story is null;
+
 -- ─── Sounds ──────────────────────────────────────────────────
 insert into sounds (name, category, mood, duration, icon, image_url, audio_url, sort_order) values
 ('Mưa rơi trên lá', 'ASMR', 'Như một làn gió cổ', '40 phút', 'rain',

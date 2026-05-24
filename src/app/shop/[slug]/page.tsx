@@ -1,5 +1,5 @@
 import Shell from '@/components/layout/Shell';
-import { getProductBySlug, getProductSlugs } from '@/lib/supabase/products';
+import { getProductBySlug, getProducts, getProductSlugs } from '@/lib/supabase/products';
 import { notFound } from 'next/navigation';
 import ProductDetailClient from './ProductDetailClient';
 
@@ -16,9 +16,13 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     notFound();
   }
 
+  const relatedProducts = (await getProducts(product.category))
+    .filter((item) => item.id !== product.id && item.is_active)
+    .slice(0, 3);
+
   return (
     <Shell>
-      <ProductDetailClient product={product} />
+      <ProductDetailClient product={product} relatedProducts={relatedProducts} />
     </Shell>
   );
 }
