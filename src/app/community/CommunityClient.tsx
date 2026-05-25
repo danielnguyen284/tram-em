@@ -3,17 +3,20 @@
 import type { Comment, PopularTag, Post } from '@/types/database';
 import { timeAgo } from '@/utils/format';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Heart, MessageCircle, MoreHorizontal, Image as ImageIcon, Smile, Send, X, Loader2, ArrowLeft, Share2 } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, Image as ImageIcon, Smile, Send, X, Loader2, ArrowLeft, Share2, Edit3, Trash2, Repeat2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './community.module.css';
 import {
   loadCommunityPosts,
   loadPostComments,
+  deleteCommunityPost,
   saveCommunityPost,
   savePostComment,
   toggleCommunityLike,
   toggleCommunityCommentLike,
+  toggleCommunityRepost,
+  updateCommunityPost,
 } from './actions';
 
 type CurrentUser = {
@@ -74,14 +77,20 @@ function PostCard({
   post,
   currentUser,
   onLike,
+  onRepost,
   onCommentSaved,
+  onPostUpdated,
+  onPostDeleted,
   autoExpandComments = false,
   highlightedCommentId = null,
 }: {
   post: Post;
   currentUser: CurrentUser;
   onLike: (id: string) => void;
+  onRepost: (id: string) => void;
   onCommentSaved: (id: string) => void;
+  onPostUpdated: (post: Post) => void;
+  onPostDeleted: (id: string) => void;
   autoExpandComments?: boolean;
   highlightedCommentId?: string | null;
 }) {
@@ -94,6 +103,15 @@ function PostCard({
   const [replyText, setReplyText] = useState('');
   const [commentError, setCommentError] = useState<string | null>(null);
   const [showShareToast, setShowShareToast] = useState(false);
+  const [showPostMenu, setShowPostMenu] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(post.content);
+  const [editImagePreviewUrl, setEditImagePreviewUrl] = useState<string | null>(post.image_url);
+  const [editImageUrl, setEditImageUrl] = useState<string | null>(post.image_url);
+  const [isEditImageUploading, setIsEditImageUploading] = useState(false);
+  const [isPostMutating, setIsPostMutating] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
 
   const authorName = post.author?.display_name ?? 'Ẩn danh';
   const fallbackAvatar =
@@ -101,6 +119,9 @@ function PostCard({
       ? '/images/avatar-default-female.png'
       : '/images/avatar-default-male.png';
   const authorAvatar = post.author?.avatar_url || fallbackAvatar;
+  const authorProfileHref = post.author_id ? `/community/profile/${post.author_id}` : null;
+  const isAuthor = Boolean(currentUser?.id && currentUser.id === post.author_id);
+  const commentsVisible = showComments || autoExpandComments || Boolean(highlightedCommentId);
 
   const loadComments = async () => {
     if (hasLoadedComments || isLoadingComments) return;
@@ -120,15 +141,144 @@ function PostCard({
 
   useEffect(() => {
     if (autoExpandComments || highlightedCommentId) {
-      setShowComments(true);
-      void loadComments();
+      const timer = window.setTimeout(() => {
+        void loadComments();
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
   }, [autoExpandComments, highlightedCommentId]);
 
   const toggleComments = () => {
-    setShowComments((value) => !value);
-    if (!showComments) {
+    const nextVisible = !commentsVisible;
+    setShowComments(nextVisible);
+    if (nextVisible) {
       void loadComments();
+    }
+  };
+
+  const startEditPost = () => {
+    setShowPostMenu(false);
+    setIsEditing(true);
+    setEditText(post.content);
+    setEditImagePreviewUrl(post.image_url);
+    setEditImageUrl(post.image_url);
+    setEditError(null);
+  };
+
+  const cancelEditPost = () => {
+    if (isPostMutating || isEditImageUploading) return;
+    setIsEditing(false);
+    setEditText(post.content);
+    setEditImagePreviewUrl(post.image_url);
+    setEditImageUrl(post.image_url);
+    setEditError(null);
+    if (editFileInputRef.current) {
+      editFileInputRef.current.value = '';
+    }
+  };
+
+  const handleSelectEditImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setEditError('Định dạng ảnh không hỗ trợ. Chỉ nhận PNG, JPG, GIF hoặc WebP.');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setEditError('Dung lượng ảnh tối đa là 10MB.');
+      return;
+    }
+
+    setEditError(null);
+    setEditImagePreviewUrl(URL.createObjectURL(file));
+    setIsEditImageUploading(true);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = (await res.json()) as { url?: string; error?: string };
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Lỗi tải ảnh lên server.');
+      }
+      if (!data.url) {
+        throw new Error('Server không trả về URL ảnh.');
+      }
+
+      setEditImageUrl(data.url);
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : 'Lỗi kết nối upload.');
+    } finally {
+      setIsEditImageUploading(false);
+    }
+  };
+
+  const removeEditImage = () => {
+    setEditImagePreviewUrl(null);
+    setEditImageUrl(null);
+    setEditError(null);
+    if (editFileInputRef.current) {
+      editFileInputRef.current.value = '';
+    }
+  };
+
+  const submitEditPost = async () => {
+    const content = editText.trim();
+    if (!content || isEditImageUploading || isPostMutating) return;
+
+    const tagMatches = content.match(/#\w+/g);
+    const tags = tagMatches ? tagMatches.map((tag) => tag.slice(1)) : [];
+    setIsPostMutating(true);
+    setEditError(null);
+
+    try {
+      const saved = await updateCommunityPost(post.id, content, editImageUrl, tags);
+
+      if (saved.moderation_status !== 'approved') {
+        onPostDeleted(post.id);
+        return;
+      }
+
+      onPostUpdated({
+        ...post,
+        ...saved,
+        liked_by_user: post.liked_by_user,
+        reposted_by_user: post.reposted_by_user,
+        comments_count: post.comments_count,
+      });
+      setIsEditing(false);
+      setShowPostMenu(false);
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : 'Không lưu được thay đổi.');
+    } finally {
+      setIsPostMutating(false);
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (isPostMutating) return;
+    setShowPostMenu(false);
+
+    const confirmed = window.confirm('Xóa bài viết này? Hành động này không thể hoàn tác.');
+    if (!confirmed) return;
+
+    setIsPostMutating(true);
+    setEditError(null);
+
+    try {
+      await deleteCommunityPost(post.id);
+      onPostDeleted(post.id);
+    } catch (err: unknown) {
+      setEditError(err instanceof Error ? err.message : 'Không xóa được bài viết.');
+    } finally {
+      setIsPostMutating(false);
     }
   };
 
@@ -197,6 +347,9 @@ function PostCard({
       } else {
         setCommentText('');
       }
+      
+      // Check for new badges
+      window.dispatchEvent(new CustomEvent('tramem:check-badges'));
     } catch (err: unknown) {
       setCommentError(err instanceof Error ? err.message : 'Không đăng được bình luận.');
     }
@@ -218,6 +371,7 @@ function PostCard({
         : '/images/avatar-default-male.png';
     const commentAvatar = comment.author?.avatar_url || commentFallbackAvatar;
     const isHighlighted = highlightedCommentId === comment.id;
+    const commentAuthorHref = comment.author_id ? `/community/profile/${comment.author_id}` : null;
 
     return (
       <div
@@ -228,7 +382,13 @@ function PostCard({
         <Avatar src={commentAvatar} size={isReply ? 26 : 30} />
         <div className={styles.commentWrap}>
           <div className={styles.commentBody}>
-            <span className={styles.commentAuthor}>{commentAuthor}</span>
+            {commentAuthorHref ? (
+              <Link href={commentAuthorHref} className={styles.commentAuthor}>
+                {commentAuthor}
+              </Link>
+            ) : (
+              <span className={styles.commentAuthor}>{commentAuthor}</span>
+            )}
             <span className={styles.commentText}>{comment.content}</span>
           </div>
           <div className={styles.commentMeta}>
@@ -282,21 +442,131 @@ function PostCard({
   return (
     <article className={styles.postCard}>
       <div className={styles.postHeader}>
-        <Avatar src={authorAvatar} size={44} />
+        {authorProfileHref ? (
+          <Link href={authorProfileHref} className={styles.authorAvatarLink}>
+            <Avatar src={authorAvatar} size={44} />
+          </Link>
+        ) : (
+          <Avatar src={authorAvatar} size={44} />
+        )}
         <div className={styles.postMeta}>
-          <span className={styles.postAuthor}>{authorName}</span>
+          {authorProfileHref ? (
+            <Link href={authorProfileHref} className={styles.postAuthor}>
+              {authorName}
+            </Link>
+          ) : (
+            <span className={styles.postAuthor}>{authorName}</span>
+          )}
           <span className={styles.postTime}>{timeAgo(post.created_at)}</span>
         </div>
-        <button className={styles.moreBtn}><MoreHorizontal size={18} /></button>
+        {isAuthor && (
+          <div className={styles.postMenuWrap}>
+            <button
+              type="button"
+              className={styles.moreBtn}
+              onClick={() => setShowPostMenu((value) => !value)}
+              aria-label="Mở tùy chọn bài viết"
+            >
+              <MoreHorizontal size={18} />
+            </button>
+            {showPostMenu && (
+              <div className={styles.postMenuPanel}>
+                <button type="button" className={styles.postMenuItem} onClick={startEditPost}>
+                  <Edit3 size={15} />
+                  <span>Chỉnh sửa</span>
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.postMenuItem} ${styles.dangerMenuItem}`}
+                  onClick={handleDeletePost}
+                  disabled={isPostMutating}
+                >
+                  <Trash2 size={15} />
+                  <span>Xóa bài viết</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      <p className={styles.postText}>{renderPostContent(post.content)}</p>
+      {isEditing ? (
+        <div className={styles.editPostBox}>
+          <textarea
+            value={editText}
+            onChange={(event) => setEditText(event.target.value)}
+            className={styles.editPostTextarea}
+            rows={5}
+            disabled={isPostMutating}
+          />
 
-      {post.image_url && (
+          {editImagePreviewUrl && (
+            <div className={styles.editImagePreview}>
+              <Image
+                src={editImagePreviewUrl}
+                alt="Ảnh bài viết"
+                fill
+                unoptimized
+                className={styles.postImg}
+              />
+              {isEditImageUploading && (
+                <div className={styles.imagePreviewOverlay}>
+                  <Loader2 className={styles.spinner} size={22} />
+                  <span>Đang tải ảnh lên...</span>
+                </div>
+              )}
+              {!isEditImageUploading && (
+                <button type="button" className={styles.removeImageBtn} onClick={removeEditImage}>
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+          )}
+
+          <div className={styles.editPostToolbar}>
+            <button
+              type="button"
+              className={styles.editImageButton}
+              onClick={() => editFileInputRef.current?.click()}
+              disabled={isPostMutating || isEditImageUploading}
+            >
+              <ImageIcon size={16} />
+              <span>{editImagePreviewUrl ? 'Đổi ảnh' : 'Thêm ảnh'}</span>
+            </button>
+            <input
+              ref={editFileInputRef}
+              type="file"
+              accept="image/png, image/jpeg, image/webp, image/gif"
+              onChange={handleSelectEditImage}
+              style={{ display: 'none' }}
+            />
+            <div className={styles.editPostActions}>
+              <button type="button" className={styles.cancelEditBtn} onClick={cancelEditPost}>
+                Hủy
+              </button>
+              <button
+                type="button"
+                className={styles.saveEditBtn}
+                onClick={submitEditPost}
+                disabled={!editText.trim() || isPostMutating || isEditImageUploading}
+              >
+                {isPostMutating ? 'Đang lưu...' : 'Lưu'}
+              </button>
+            </div>
+          </div>
+          {editError && <p className={styles.commentError}>{editError}</p>}
+        </div>
+      ) : (
+        <p className={styles.postText}>{renderPostContent(post.content)}</p>
+      )}
+
+      {!isEditing && post.image_url && (
         <div className={styles.postImage}>
           <Image src={post.image_url} alt="post" fill className={styles.postImg} />
         </div>
       )}
+
+      {!isEditing && editError && <p className={styles.commentError}>{editError}</p>}
 
       <div className={styles.postActions}>
         <button
@@ -310,13 +580,22 @@ function PostCard({
           <MessageCircle size={18} />
           <span>{post.comments_count ?? 0}</span>
         </button>
+        <button
+          className={`${styles.actionBtn} ${post.reposted_by_user ? styles.reposted : ''}`}
+          onClick={() => onRepost(post.id)}
+          disabled={!currentUser || isAuthor}
+          title={isAuthor ? 'Bạn chỉ có thể đăng lại bài của người khác' : 'Đăng lại bài viết'}
+        >
+          <Repeat2 size={18} />
+          <span>{post.reposts_count}</span>
+        </button>
         <button className={styles.actionBtn} onClick={handleShare} title="Sao chép liên kết bài viết">
           <Share2 size={18} />
           <span>Chia sẻ</span>
         </button>
       </div>
 
-      {showComments && (
+      {commentsVisible && (
         <div className={styles.commentsSection}>
           {isLoadingComments && <p className={styles.commentState}>Đang tải bình luận...</p>}
           {!isLoadingComments && topLevelComments.map((comment) => renderComment(comment))}
@@ -451,6 +730,37 @@ export default function CommunityClient({
     }
   };
 
+  const handleRepost = async (id: string) => {
+    if (!currentUser) return;
+    const targetPost = posts.find((post) => post.id === id);
+    if (!targetPost || targetPost.author_id === currentUser.id) return;
+
+    setPosts((prev) => prev.map((post) => {
+      if (post.id !== id) return post;
+      const nextReposted = !post.reposted_by_user;
+      return {
+        ...post,
+        reposted_by_user: nextReposted,
+        reposts_count: Math.max(0, post.reposts_count + (nextReposted ? 1 : -1)),
+      };
+    }));
+
+    try {
+      await toggleCommunityRepost(id);
+    } catch (err) {
+      console.error('Failed to toggle repost:', err);
+      setPosts((prev) => prev.map((post) => {
+        if (post.id !== id) return post;
+        const nextReposted = !post.reposted_by_user;
+        return {
+          ...post,
+          reposted_by_user: nextReposted,
+          reposts_count: Math.max(0, post.reposts_count + (nextReposted ? 1 : -1)),
+        };
+      }));
+    }
+  };
+
   const loadMorePosts = useCallback(async () => {
     if (isLoadingMore || isTagLoading || !hasMore || isSinglePostView) return;
     setIsLoadingMore(true);
@@ -491,6 +801,26 @@ export default function CommunityClient({
         post.id === id ? { ...post, comments_count: (post.comments_count ?? 0) + 1 } : post,
       ),
     );
+  };
+
+  const handlePostUpdated = (updatedPost: Post) => {
+    setPosts((prev) =>
+      prev.map((post) =>
+        post.id === updatedPost.id
+          ? {
+              ...post,
+              ...updatedPost,
+              liked_by_user: post.liked_by_user,
+              reposted_by_user: post.reposted_by_user,
+              comments_count: post.comments_count ?? updatedPost.comments_count,
+            }
+          : post,
+      ),
+    );
+  };
+
+  const handlePostDeleted = (id: string) => {
+    setPosts((prev) => prev.filter((post) => post.id !== id));
   };
 
   const handleSelectImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -562,6 +892,9 @@ export default function CommunityClient({
       const saved = await saveCommunityPost(content, imageUrl, tags);
       setDraft('');
       handleRemoveImage();
+      
+      // Check for new badges
+      window.dispatchEvent(new CustomEvent('tramem:check-badges'));
 
       if (saved.moderation_status === 'pending_review') {
         setModerationNotice('Bài viết đã được gửi vào hàng chờ duyệt vì có từ ngữ nhạy cảm.');
@@ -744,7 +1077,10 @@ export default function CommunityClient({
               post={post}
               currentUser={currentUser}
               onLike={handleLike}
+              onRepost={handleRepost}
               onCommentSaved={handleCommentSaved}
+              onPostUpdated={handlePostUpdated}
+              onPostDeleted={handlePostDeleted}
               autoExpandComments={isSinglePostView}
               highlightedCommentId={highlightedCommentId}
             />

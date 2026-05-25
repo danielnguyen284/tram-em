@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import TopNav from './TopNav';
 import Sidebar from './Sidebar';
 import MusicPlayer from './MusicPlayer';
+import BadgeUnlockToast from '@/components/ui/BadgeUnlockToast';
 import styles from './Shell.module.css';
 
 export default function Shell({ children }: { children: React.ReactNode }) {
@@ -25,6 +26,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
       <MusicPlayer />
+      <BadgeUnlockToast />
     </div>
   );
 }

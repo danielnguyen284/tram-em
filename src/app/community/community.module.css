@@ -191,9 +191,20 @@
   color: var(--color-text-primary);
 }
 
+.postAuthor:hover,
+.commentAuthor:hover {
+  color: var(--color-primary);
+}
+
 .postTime {
   font-size: var(--text-tiny);
   color: var(--color-text-muted);
+}
+
+.authorAvatarLink {
+  display: block;
+  flex: 0 0 auto;
+  border-radius: 50%;
 }
 
 .moreBtn {
@@ -215,11 +226,170 @@
   color: var(--color-primary);
 }
 
+.postMenuWrap {
+  position: relative;
+}
+
+.postMenuPanel {
+  position: absolute;
+  top: 38px;
+  right: 0;
+  z-index: 30;
+  min-width: 160px;
+  padding: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-card);
+  box-shadow: 0 14px 34px rgba(44, 29, 59, 0.14);
+}
+
+.postMenuItem {
+  width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 10px;
+  text-align: left;
+}
+
+.postMenuItem:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.postMenuItem:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.dangerMenuItem {
+  color: #a33c5c;
+}
+
+.dangerMenuItem:hover:not(:disabled) {
+  background: #fff0f3;
+  color: #8f2749;
+}
+
 .postText {
   font-size: var(--text-body);
   color: var(--color-text-primary);
   line-height: 1.65;
   white-space: pre-wrap;
+}
+
+.editPostBox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.editPostTextarea {
+  width: 100%;
+  min-height: 140px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-body);
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  padding: var(--space-md);
+}
+
+.editPostTextarea:focus {
+  border-color: var(--color-primary-light);
+  box-shadow: 0 0 0 3px rgba(171, 147, 205, 0.16);
+}
+
+.editImagePreview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
+  overflow: hidden;
+}
+
+.editPostToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.editImageButton,
+.cancelEditBtn,
+.saveEditBtn {
+  min-height: 36px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--color-border);
+  font: inherit;
+  font-size: var(--text-small);
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.editImageButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--color-bg-card);
+  color: var(--color-primary);
+  padding: 0 14px;
+}
+
+.editImageButton:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary-light);
+}
+
+.editPostActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.cancelEditBtn {
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  padding: 0 16px;
+}
+
+.saveEditBtn {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  padding: 0 18px;
+}
+
+.cancelEditBtn:hover:not(:disabled) {
+  background: var(--color-bg-page);
+}
+
+.saveEditBtn:hover:not(:disabled) {
+  background: #9278b8;
+}
+
+.editImageButton:disabled,
+.cancelEditBtn:disabled,
+.saveEditBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .postImage {
@@ -275,6 +445,16 @@
   background: var(--color-primary-soft);
 }
 
+.actionBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.actionBtn:disabled:hover {
+  color: var(--color-text-muted);
+  background: none;
+}
+
 .actionBtn.liked {
   color: #e05c7a;
 }
@@ -282,6 +462,10 @@
 .actionBtn.liked:hover {
   color: #e05c7a;
   background: #fff0f4;
+}
+
+.actionBtn.reposted {
+  color: var(--color-primary);
 }
 
 /* ── Comments ── */
@@ -855,4 +1039,3 @@
     box-shadow: none;
   }
 }
-

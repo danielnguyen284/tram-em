@@ -5,6 +5,7 @@ import { useSoundStore } from '@/store/useSoundStore';
 import { toPlayableSound } from '@/lib/sounds/playback';
 import { Pause, Play } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useLogActivity } from '@/hooks/useLogActivity';
 import styles from './soundscape.module.css';
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
 export default function SoundscapeClient({ sounds, categories }: Props) {
   const [activeCategory, setActiveCategory] = useState(categories[0] ?? 'Tất cả');
   const { addSound, activeSounds, removeSound, setPlaylist } = useSoundStore();
+  const logActivity = useLogActivity();
 
   const playlist = useMemo(() => sounds.map(toPlayableSound), [sounds]);
 
@@ -33,6 +35,7 @@ export default function SoundscapeClient({ sounds, categories }: Props) {
       return;
     }
 
+    logActivity('soundscape_play');
     addSound(toPlayableSound(sound));
   };
 

@@ -4,10 +4,13 @@ import {
   COMMUNITY_POSTS_PAGE_SIZE,
   createComment,
   createPost,
+  deletePost,
   getComments,
   getPosts,
   toggleLike,
   toggleCommentLike,
+  toggleRepost,
+  updatePost,
 } from '@/lib/supabase/community';
 import { revalidatePath } from 'next/cache';
 
@@ -17,9 +20,34 @@ export async function saveCommunityPost(content: string, imageUrl?: string, tags
   return data;
 }
 
+export async function updateCommunityPost(
+  postId: string,
+  content: string,
+  imageUrl?: string | null,
+  tags?: string[],
+) {
+  const data = await updatePost(postId, content, imageUrl ?? null, tags ?? []);
+  revalidatePath('/community');
+  revalidatePath(`/community/post/${postId}`);
+  return data;
+}
+
+export async function deleteCommunityPost(postId: string) {
+  await deletePost(postId);
+  revalidatePath('/community');
+  revalidatePath(`/community/post/${postId}`);
+}
+
 export async function toggleCommunityLike(postId: string) {
   const result = await toggleLike(postId);
   revalidatePath('/community');
+  return result;
+}
+
+export async function toggleCommunityRepost(postId: string) {
+  const result = await toggleRepost(postId);
+  revalidatePath('/community');
+  revalidatePath(`/community/post/${postId}`);
   return result;
 }
 
@@ -47,4 +75,3 @@ export async function toggleCommunityCommentLike(commentId: string) {
   revalidatePath('/community');
   return result;
 }
-

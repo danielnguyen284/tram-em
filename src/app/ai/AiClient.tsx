@@ -25,6 +25,54 @@ const PROMPTS = [
   'Mình muốn được an ủi',
 ];
 
+const DEFAULT_THREAD_TITLE = 'Cuộc trò chuyện mới';
+const GREETING_PATTERNS = [
+  /^(xin\s+)?chao+(\s+(ban|em|ai|nha|nhe|nhe|ạ|a|ơi))*[.!?~\s]*$/i,
+  /^(hi|hello|hey|alo|ê|e|yo)(\s+(ban|em|ai|nha|nhe|ạ|a|ơi))*[.!?~\s]*$/i,
+  /^ban\s+oi+[.!?~\s]*$/i,
+  /^em\s+oi+[.!?~\s]*$/i,
+];
+const EMOTION_TITLE_KEYWORDS = new Set([
+  'buon',
+  'met',
+  'lo',
+  'so',
+  'chan',
+  'stress',
+  'cang',
+  'ap',
+  'luc',
+  'co',
+  'don',
+  'nho',
+  'khoc',
+  'dau',
+]);
+
+function normalizeVietnamese(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .trim();
+}
+
+function isConversationTitleCandidate(value: string) {
+  const normalized = normalizeVietnamese(value);
+  if (!normalized) return false;
+  if (GREETING_PATTERNS.some((pattern) => pattern.test(normalized))) return false;
+
+  const words = normalized.split(/\s+/).filter(Boolean);
+  if (words.some((word) => EMOTION_TITLE_KEYWORDS.has(word))) return true;
+  return normalized.length >= 8 || words.length >= 2;
+}
+
+function makeThreadTitle(value: string) {
+  return value.replace(/\s+/g, ' ').trim().slice(0, 34);
+}
+
 function formatThreadTimestamp(value: string) {
   const date = new Date(value);
   const time = new Intl.DateTimeFormat('vi-VN', {
@@ -183,14 +231,20 @@ export default function AiClient({
     try {
       let targetThread = activeThread;
       const now = new Date().toISOString();
-      const isFirstUserMessage = !targetThread || !messages.some((message) => message.role === 'user');
+      const shouldUseMessageAsTitle =
+        isConversationTitleCandidate(text) &&
+        !messages.some(
+          (message) =>
+            message.role === 'user' &&
+            isConversationTitleCandidate(message.content),
+        );
 
       if (!targetThread) {
         const { data } = await supabase
           .from('chat_threads')
           .insert({
             user_id: userId,
-            title: text.slice(0, 34),
+            title: shouldUseMessageAsTitle ? makeThreadTitle(text) : DEFAULT_THREAD_TITLE,
             topic: 'Em AI luôn ở đây',
           })
           .select()
@@ -250,8 +304,8 @@ export default function AiClient({
           content: text,
         });
 
-        const threadPatch = isFirstUserMessage
-          ? { title: text.slice(0, 34), updated_at: threadUpdatedAt }
+        const threadPatch = shouldUseMessageAsTitle
+          ? { title: makeThreadTitle(text), updated_at: threadUpdatedAt }
           : { updated_at: threadUpdatedAt };
 
         await supabase
@@ -286,8 +340,8 @@ export default function AiClient({
         { thread_id: targetThread.id, role: 'assistant', content: replyText },
       ]);
 
-      const threadPatch = isFirstUserMessage
-        ? { title: text.slice(0, 34), updated_at: threadUpdatedAt }
+      const threadPatch = shouldUseMessageAsTitle
+        ? { title: makeThreadTitle(text), updated_at: threadUpdatedAt }
         : { updated_at: threadUpdatedAt };
 
       await supabase
@@ -320,7 +374,7 @@ export default function AiClient({
       .from('chat_threads')
       .insert({
         user_id: userId,
-        title: 'Cuộc trò chuyện mới',
+        title: DEFAULT_THREAD_TITLE,
         topic: 'Em AI luôn ở đây',
       })
       .select()
@@ -372,7 +426,7 @@ export default function AiClient({
           <main className={styles.chatPanel}>
             <div className={styles.botStage} aria-hidden="true">
               <div className={styles.botWrap}>
-                <Image src="/images/ai-mascot-transparent.png" alt="AI Mascot" fill sizes="(max-width: 820px) 180px, 280px" style={{ objectFit: 'contain' }} priority />
+                <Image src="/images/ai-mascot.svg" alt="AI Mascot" fill sizes="(max-width: 820px) 180px, 280px" style={{ objectFit: 'contain' }} priority />
               </div>
             </div>
             <div className={styles.chatStack}>
@@ -420,7 +474,7 @@ export default function AiClient({
             <div className={styles.botStage} aria-hidden="true">
               <div className={styles.orbitDot} />
               <div className={styles.botWrap}>
-                <Image src="/images/ai-mascot-transparent.png" alt="AI Mascot" fill sizes="(max-width: 820px) 180px, 280px" style={{ objectFit: 'contain' }} priority />
+                <Image src="/images/ai-mascot.svg" alt="AI Mascot" fill sizes="(max-width: 820px) 180px, 280px" style={{ objectFit: 'contain' }} priority />
               </div>
             </div>
           )}

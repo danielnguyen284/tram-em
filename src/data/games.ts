@@ -7,7 +7,7 @@ export type GameMeta = {
   href: string;
 };
 
-export const gameCategories = ['Tất cả', 'Vui nhộn', 'Thư giãn', 'Sáng tạo', 'Tập trung', 'Phản xạ'];
+export const gameCategories = ['Tất cả', 'Vui nhộn', 'Sáng tạo', 'Tập trung', 'Chữa lành', 'Action nhẹ'];
 
 export const games: GameMeta[] = [
   {
@@ -27,27 +27,35 @@ export const games: GameMeta[] = [
     href: '/games/sand-draw',
   },
   {
-    id: 'pebble-sort',
-    title: 'Sắp xếp sỏi',
-    description: 'Đổi vị trí những viên sỏi màu, thiền theo nhịp chuyển động nhẹ nhàng.',
-    category: 'Thư giãn',
-    image: '/images/game-pebble-sort.png',
-    href: '/games/pebble-sort',
-  },
-  {
     id: '2048',
     title: '2048',
     description: 'Ghép các ô số cùng giá trị, giữ nhịp suy nghĩ chậm và rõ ràng.',
     category: 'Tập trung',
-    image: '/images/game-2048.svg',
+    image: '/images/game-2048.png',
     href: '/games/2048',
   },
   {
-    id: 'snake',
-    title: 'Rắn săn mồi',
-    description: 'Dẫn đường thật mượt, ăn mồi và giữ bình tĩnh khi tốc độ tăng dần.',
-    category: 'Phản xạ',
-    image: '/images/game-snake.svg',
-    href: '/games/snake',
+    id: 'tear-garden',
+    title: 'Đỡ Giọt Nước Mắt',
+    description: 'Hứng những giọt nước mắt bằng chiếc lá êm, gom đủ yêu thương để tạo thành vườn hoa nhỏ.',
+    category: 'Chữa lành',
+    image: '/images/game-tear-garden.png',
+    href: '/games/tear-garden',
+  },
+  {
+    id: 'calm-lights',
+    title: 'Bấm Đèn Bình Tĩnh',
+    description: 'Nhấn đúng chiếc đèn đang sáng theo nhịp để thắp sáng căn phòng ấm áp và giữ tâm trí bình tĩnh.',
+    category: 'Tập trung',
+    image: '/images/game-calm-lights.png',
+    href: '/games/calm-lights',
+  },
+  {
+    id: 'flower-pick',
+    title: 'Nhặt Hoa Bình Yên',
+    description: 'Chạm vào những bông hoa pastel trước khi chúng tàn, tránh cỏ gai và mây xám để tạo bó hoa cuối game.',
+    category: 'Vui nhộn',
+    image: '/images/game-flower-pick.png',
+    href: '/games/flower-pick',
   },
 ];

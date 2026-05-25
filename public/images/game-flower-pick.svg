@@ -1,0 +1,121 @@
+<svg width="720" height="720" viewBox="0 0 720 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Warm garden sky background -->
+  <rect width="720" height="720" rx="56" fill="#F4EDF8"/>
+  <!-- Sky gradient -->
+  <path d="M0 0H720V420H0Z" fill="url(#skyGrad)" rx="56"/>
+  <defs>
+    <radialGradient id="skyGrad" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FFF5E8"/>
+      <stop offset="100%" stop-color="#EDD7F7"/>
+    </radialGradient>
+    <radialGradient id="glowPink" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFAEC9" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#FFAEC9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowPurple" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#D4B8FF" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#D4B8FF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowYellow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFEDB3" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#FFEDB3" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Soft ground meadow -->
+  <path d="M0 460C80 430 200 445 360 435C520 425 640 450 720 440V720H0Z" fill="#D4E8C2"/>
+  <path d="M0 500C100 480 250 490 400 478C550 466 660 485 720 475V720H0Z" fill="#C8E0B0"/>
+  <path d="M0 560C150 540 300 555 460 548C600 542 680 558 720 552V720H0Z" fill="#B8D8A0"/>
+
+  <!-- Background distant trees/arch -->
+  <path d="M290 350C290 350 260 280 290 230C320 180 380 185 400 235C420 285 390 350 390 350Z" fill="#C8DFAE" opacity="0.6"/>
+  <path d="M300 360C300 360 420 360 420 360L430 430L290 430Z" fill="#E8D5B0" opacity="0.4"/>
+
+  <!-- Sparkle particles in background -->
+  <circle cx="160" cy="200" r="3" fill="#FFF" opacity="0.8"/>
+  <circle cx="490" cy="180" r="2.5" fill="#FFF" opacity="0.7"/>
+  <circle cx="560" cy="300" r="2" fill="#FFF" opacity="0.6"/>
+  <circle cx="200" cy="340" r="3" fill="#FFF" opacity="0.6"/>
+
+  <!-- Flower 1: Pink large center (main hero) -->
+  <circle cx="230" cy="420" r="55" fill="url(#glowPink)" opacity="0.8"/>
+  <circle cx="230" cy="390" r="18" fill="#FFC8D8"/>
+  <circle cx="213" cy="408" r="18" fill="#FFC8D8"/>
+  <circle cx="247" cy="408" r="18" fill="#FFC8D8"/>
+  <circle cx="213" cy="430" r="18" fill="#FFC8D8"/>
+  <circle cx="247" cy="430" r="18" fill="#FFC8D8"/>
+  <circle cx="230" cy="416" r="14" fill="#FFAEC9"/>
+  <circle cx="230" cy="416" r="7" fill="#FFF5C0"/>
+
+  <!-- Flower 2: Purple top left -->
+  <circle cx="120" cy="310" r="45" fill="url(#glowPurple)" opacity="0.7"/>
+  <circle cx="120" cy="285" r="15" fill="#D4B8FF"/>
+  <circle cx="106" cy="300" r="15" fill="#D4B8FF"/>
+  <circle cx="134" cy="300" r="15" fill="#D4B8FF"/>
+  <circle cx="106" cy="318" r="15" fill="#D4B8FF"/>
+  <circle cx="134" cy="318" r="15" fill="#D4B8FF"/>
+  <circle cx="120" cy="304" r="11" fill="#C7A0F4"/>
+  <circle cx="120" cy="304" r="6" fill="#FFF5C0"/>
+
+  <!-- Flower 3: Yellow center top -->
+  <circle cx="390" cy="280" r="45" fill="url(#glowYellow)" opacity="0.7"/>
+  <circle cx="390" cy="257" r="14" fill="#FFEDB3"/>
+  <circle cx="376" cy="270" r="14" fill="#FFEDB3"/>
+  <circle cx="404" cy="270" r="14" fill="#FFEDB3"/>
+  <circle cx="376" cy="287" r="14" fill="#FFEDB3"/>
+  <circle cx="404" cy="287" r="14" fill="#FFEDB3"/>
+  <circle cx="390" cy="273" r="10" fill="#FFD97A"/>
+  <circle cx="390" cy="273" r="5" fill="#FFF5C0"/>
+
+  <!-- Flower 4: Green-mint bottom center -->
+  <circle cx="380" cy="475" r="20" fill="#B8E6C0"/>
+  <circle cx="380" cy="456" r="13" fill="#C6F4D6"/>
+  <circle cx="368" cy="466" r="13" fill="#C6F4D6"/>
+  <circle cx="392" cy="466" r="13" fill="#C6F4D6"/>
+  <circle cx="368" cy="480" r="13" fill="#C6F4D6"/>
+  <circle cx="392" cy="480" r="13" fill="#C6F4D6"/>
+  <circle cx="380" cy="469" r="9" fill="#90D6A4"/>
+  <circle cx="380" cy="469" r="5" fill="#FFF5C0"/>
+
+  <!-- Flower 5: Peach right side -->
+  <circle cx="540" cy="390" r="18" fill="#FFD9C0"/>
+  <circle cx="540" cy="372" r="13" fill="#FFBEA0"/>
+  <circle cx="527" cy="382" r="13" fill="#FFBEA0"/>
+  <circle cx="553" cy="382" r="13" fill="#FFBEA0"/>
+  <circle cx="527" cy="396" r="13" fill="#FFBEA0"/>
+  <circle cx="553" cy="396" r="13" fill="#FFBEA0"/>
+  <circle cx="540" cy="385" r="9" fill="#FF9E7A"/>
+  <circle cx="540" cy="385" r="5" fill="#FFF5C0"/>
+
+  <!-- Angry Cloud hazard (top right area) -->
+  <g transform="translate(530, 230)">
+    <ellipse cx="0" cy="0" rx="40" ry="28" fill="#B0A8BC"/>
+    <ellipse cx="-15" cy="-18" rx="20" ry="18" fill="#B0A8BC"/>
+    <ellipse cx="10" cy="-20" rx="24" ry="20" fill="#B0A8BC"/>
+    <ellipse cx="28" cy="-10" rx="18" ry="16" fill="#B0A8BC"/>
+    <!-- Angry eyebrows -->
+    <path d="M-16 -8C-12 -12 -6 -10 -4 -7" stroke="#7A708C" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M4 -7C6 -10 12 -12 16 -8" stroke="#7A708C" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <!-- Angry eyes -->
+    <ellipse cx="-10" cy="-3" rx="4" ry="4" fill="#7A708C"/>
+    <ellipse cx="10" cy="-3" rx="4" ry="4" fill="#7A708C"/>
+    <!-- Frowning mouth -->
+    <path d="M-8 6C-4 4 4 4 8 6" stroke="#7A708C" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  </g>
+
+  <!-- Thorny weed hazard (bottom left) -->
+  <g transform="translate(100, 530)">
+    <rect x="-4" y="-40" width="8" height="50" rx="3" fill="#7A9060"/>
+    <path d="M-4 -30C-14 -36 -18 -28 -10 -22" fill="#6A8050"/>
+    <path d="M4 -20C14 -26 18 -18 10 -12" fill="#6A8050"/>
+    <path d="M-4 -10C-12 -16 -16 -8 -8 -2" fill="#6A8050"/>
+    <!-- Spikes -->
+    <circle cx="-12" cy="-30" r="3" fill="#5A7040"/>
+    <circle cx="13" cy="-20" r="3" fill="#5A7040"/>
+    <circle cx="-10" cy="-8" r="3" fill="#5A7040"/>
+  </g>
+
+  <!-- Little sparkles near flowers -->
+  <path d="M196 260L200 248L204 260L216 264L204 268L200 280L196 268L184 264Z" fill="#FFF" opacity="0.9"/>
+  <path d="M446 330L449 322L452 330L460 333L452 336L449 344L446 336L438 333Z" fill="#FFF" opacity="0.8"/>
+</svg>

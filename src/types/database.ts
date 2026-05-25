@@ -63,10 +63,12 @@ export type Post = {
   reviewed_by: string | null;
   reviewed_at: string | null;
   created_at: string;
+  updated_at?: string | null;
   // Joined fields
   author?: Profile;
   comments_count?: number;
   liked_by_user?: boolean;
+  reposted_by_user?: boolean;
 };
 
 export type Comment = {
@@ -86,6 +88,41 @@ export type PopularTag = {
   tag: string;
   posts_count: number;
   hot_score: number;
+};
+
+export type CommunityBadge = {
+  id: string;
+  name: string;
+  description: string;
+  image: string;
+  earned: boolean;
+};
+
+export type CommunityProfileComment = Comment & {
+  post?: Pick<Post, 'id' | 'content' | 'created_at'> | null;
+};
+
+export type CommunityProfileRepost = {
+  user_id: string;
+  post_id: string;
+  created_at: string;
+  post?: Post | null;
+};
+
+export type CommunityProfile = {
+  profile: Pick<Profile, 'id' | 'display_name' | 'avatar_url' | 'gender' | 'username' | 'created_at'>;
+  stats: {
+    postsCount: number;
+    commentsCount: number;
+    repostsCount: number;
+    totalLikes: number;
+    daysActive: number;
+    earnedBadgesCount: number;
+  };
+  badges: CommunityBadge[];
+  posts: Post[];
+  comments: CommunityProfileComment[];
+  reposts: CommunityProfileRepost[];
 };
 
 export type Profile = {

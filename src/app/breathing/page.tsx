@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Shell from '@/components/layout/Shell';
 import { Play, Pause, RotateCcw, Wind, Moon, Square } from 'lucide-react';
+import { useLogActivity } from '@/hooks/useLogActivity';
 import styles from './breathing.module.css';
 
 const techniques = [
@@ -41,11 +42,20 @@ export default function BreathingPage() {
   const [phase, setPhase] = useState<'inhale' | 'hold1' | 'exhale' | 'hold2'>('inhale');
   const [timeLeft, setTimeLeft] = useState(selectedTech.inhale);
 
+  const logActivity = useLogActivity();
+
   useEffect(() => {
     if (!isActive) {
       setCyclesLeft(cycles);
     }
   }, [cycles, isActive]);
+
+  // Log badge activity when breathing session completes
+  useEffect(() => {
+    if (isCompleted) {
+      logActivity('breathing_complete');
+    }
+  }, [isCompleted, logActivity]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;

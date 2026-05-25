@@ -1,12 +1,108 @@
 .page {
-  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  padding-bottom: var(--space-2xl);
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.layout {
   display: grid;
-  gap: var(--space-xl);
+  grid-template-columns: 1.8fr 1fr;
+  gap: var(--space-lg);
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hero {
+  margin-bottom: var(--space-xl);
+  width: 100%;
+}
+
+.titleBlock {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+}
+
+.mascot {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--color-primary-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-primary-light);
+  flex-shrink: 0;
+}
+
+.mascotFace {
+  font-size: var(--text-h3);
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+.category {
+  font-size: var(--text-tiny);
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.titleBlock h1 {
+  font-size: var(--text-h2);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.titleBlock p {
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+}
+
+.muteBtn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.muteBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.gamePanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
 }
 
 .topBar,
-.header,
-.controls {
+.header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -15,7 +111,6 @@
 
 .backLink,
 .resetButton,
-.controls button,
 .overlay button {
   min-height: 40px;
   display: inline-flex;
@@ -33,51 +128,131 @@
 
 .backLink:hover,
 .resetButton:hover,
-.controls button:hover,
 .overlay button:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
-.header h1 {
+/* Sidebar cards */
+.sidePanel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  width: 100%;
+}
+
+.sideCard {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: 0 4px 12px rgba(171, 147, 205, 0.05);
+}
+
+.cardTitle {
+  font-size: var(--text-body);
+  font-weight: 700;
   color: var(--color-text-primary);
-  font-size: clamp(38px, 9vw, 64px);
-  line-height: 1;
-  font-weight: 900;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.header p {
-  max-width: 460px;
-  margin-top: var(--space-xs);
-  color: var(--color-text-muted);
-  line-height: 1.55;
+.instructionList {
+  list-style-type: decimal;
+  padding-left: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--text-small);
+  margin-bottom: var(--space-md);
 }
 
-.scoreBox {
-  min-width: 110px;
-  min-height: 78px;
-  display: grid;
-  place-items: center;
+.actionGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.resetBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  padding: 12px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.resetBtn:hover {
+  opacity: 0.9;
+}
+
+.mascotImage {
+  width: 100%;
+  max-width: 120px;
+  height: auto;
+  margin: 0 auto var(--space-md);
+  display: block;
+}
+
+.mascotSpeechBubble {
+  background: var(--color-bg-card);
+  border: 1.5px solid var(--color-primary-light);
+  border-radius: var(--radius-lg);
+  border-top-left-radius: 4px;
+  padding: var(--space-md);
+  color: var(--color-primary);
+  font-size: var(--text-small);
+  font-weight: 600;
+  position: relative;
+  text-align: center;
+}
+
+.mascotSpeechBubble::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 20px;
+  width: 10px;
+  height: 10px;
+  background: var(--color-bg-card);
+  border-top: 1.5px solid var(--color-primary-light);
+  border-left: 1.5px solid var(--color-primary-light);
+  transform: rotate(45deg);
+}
+
+.statRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-bg-body);
+  padding: 12px 16px;
   border-radius: var(--radius-md);
-  background: #b7a492;
-  color: #ffffff;
-  padding: 10px 16px;
+  border: 1px solid var(--color-border);
 }
 
-.scoreBox span {
-  font-size: var(--text-tiny);
-  font-weight: 900;
-  text-transform: uppercase;
+.statLabel {
+  font-size: var(--text-small);
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
-.scoreBox strong {
-  font-size: var(--text-h2);
-  line-height: 1;
+.statValue {
+  font-size: var(--text-body);
+  font-weight: 800;
+  color: var(--color-text-primary);
 }
 
 .board {
   position: relative;
-  width: min(100%, 560px);
+  width: min(100%, 680px);
   aspect-ratio: 1;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -133,11 +308,6 @@
   font-size: var(--text-h2);
 }
 
-.controls {
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
 @keyframes tileIn {
   from {
     transform: scale(0.72);
@@ -150,19 +320,8 @@
 }
 
 @media (max-width: 640px) {
-  .topBar,
-  .header {
+  .topBar {
     align-items: flex-start;
     flex-direction: column;
-  }
-
-  .scoreBox {
-    width: 100%;
-    min-height: 64px;
-  }
-
-  .controls {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

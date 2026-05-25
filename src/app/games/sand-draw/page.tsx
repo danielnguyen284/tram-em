@@ -3,7 +3,8 @@
 import Shell from '@/components/layout/Shell';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { Eraser, Trash2, Volume2, VolumeX } from 'lucide-react';
+import Breadcrumb from '@/components/ui/Breadcrumb';
 import styles from './sand-draw.module.css';
 
 const COLORS = ['#a8c8f0', '#a8d8b9', '#c8a4e8', '#f4a8c0', '#f7c59f', '#7ec8a8'];
@@ -45,17 +46,24 @@ export default function SandDrawPage() {
   const [size, setSize] = useState(DEFAULT_SIZE);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
+  const [isAudioMuted, setIsAudioMuted] = useState(false);
   const ambientRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     // Ambient beach/wind sound
     const audio = new Audio('https://cdn.pixabay.com/download/audio/2022/03/15/audio_6c3b8d0d90.mp3?filename=ocean-waves-112186.mp3');
     audio.loop = true;
-    audio.volume = 0.2;
+    audio.volume = isAudioMuted ? 0 : 0.2;
     audio.play().catch(() => {});
     ambientRef.current = audio;
     return () => { audio.pause(); };
   }, []);
+
+  useEffect(() => {
+    if (ambientRef.current) {
+      ambientRef.current.volume = isAudioMuted ? 0 : 0.2;
+    }
+  }, [isAudioMuted]);
 
   const getAudioCtx = useCallback(() => {
     if (!audioCtxRef.current) audioCtxRef.current = new AudioContext();
@@ -79,8 +87,10 @@ export default function SandDrawPage() {
     if (!canvas) return;
     isDrawing.current = true;
     lastPos.current = getPos(e, canvas);
-    playSandSound(getAudioCtx(), gainNodeRef);
-  }, [getAudioCtx]);
+    if (!isAudioMuted) {
+      playSandSound(getAudioCtx(), gainNodeRef);
+    }
+  }, [getAudioCtx, isAudioMuted]);
 
   const draw = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing.current) return;
@@ -130,64 +140,108 @@ export default function SandDrawPage() {
 
   return (
     <Shell>
-      <div className={styles.container}>
-        <div className={styles.topBar}>
-          <Link href="/games" className={styles.backBtn}>
-            <ArrowLeft size={18} /> Quay lại
-          </Link>
-          <h2 className={styles.pageTitle}>Vẽ trên cát</h2>
-          <div style={{ width: 80 }} />
-        </div>
+      <div className={styles.page}>
+        <header className={styles.hero}>
+          <Breadcrumb items={[{ label: 'Games', href: '/games' }, { label: 'Vẽ Trên Cát' }]} />
+          <div className={styles.titleBlock}>
+            <div className={styles.mascot} aria-hidden="true">
+              <span className={styles.mascotFace}>•ᴗ•</span>
+            </div>
+            <div>
+              <span className={styles.category}>Sáng tạo / Thư giãn</span>
+              <h1>Vẽ Trên Cát</h1>
+              <p>Thư giãn bằng cách vẽ những đường nét mềm mại trên mặt cát êm đềm.</p>
+            </div>
+            
+            <button
+              onClick={() => setIsAudioMuted(!isAudioMuted)}
+              className={styles.muteBtn}
+              title={isAudioMuted ? 'Mở âm thanh' : 'Tắt âm thanh'}
+              type="button"
+            >
+              {isAudioMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              <span>{isAudioMuted ? 'Tắt tiếng' : 'Mở tiếng'}</span>
+            </button>
+          </div>
+        </header>
 
-        <div className={styles.toolbar}>
-          <div className={styles.colorPicker}>
-            {COLORS.map(c => (
-              <button
-                key={c}
-                className={`${styles.colorDot} ${color === c ? styles.selectedColor : ''}`}
-                style={{ backgroundColor: c }}
-                onClick={() => setColor(c)}
-                aria-label={`Chọn màu ${c}`}
+        <div className={styles.layout}>
+          <div className={styles.gamePanel}>
+            <div className={styles.canvasWrapper}>
+              <canvas
+                ref={canvasRef}
+                width={900}
+                height={520}
+                className={styles.canvas}
+                onMouseDown={startDraw}
+                onMouseMove={draw}
+                onMouseUp={stopDraw}
+                onMouseLeave={stopDraw}
+                onTouchStart={startDraw}
+                onTouchMove={draw}
+                onTouchEnd={stopDraw}
+                onTouchCancel={stopDraw}
               />
-            ))}
+            </div>
           </div>
-          <div className={styles.sizeControl}>
-            <span className={styles.sizeLabel}>Cỡ bút</span>
-            <input
-              type="range"
-              min={4}
-              max={30}
-              value={size}
-              onChange={e => setSize(Number(e.target.value))}
-              className={styles.slider}
-            />
-            <div
-              className={styles.sizePreview}
-              style={{ width: size, height: size, backgroundColor: color }}
-            />
+
+          <div className={styles.sidePanel}>
+            <div className={styles.sideCard}>
+            <h3 className={styles.cardTitle}>Công cụ</h3>
+            <div className={styles.toolbar}>
+              <div className={styles.colorPicker}>
+                {COLORS.map(c => (
+                  <button
+                    key={c}
+                    className={`${styles.colorDot} ${color === c ? styles.selectedColor : ''}`}
+                    style={{ backgroundColor: c }}
+                    onClick={() => setColor(c)}
+                    aria-label={`Chọn màu ${c}`}
+                  />
+                ))}
+              </div>
+              <div className={styles.sizeControl}>
+                <span className={styles.sizeLabel}>Cỡ nét:</span>
+                <input
+                  type="range"
+                  min="4"
+                  max="40"
+                  value={size}
+                  onChange={e => setSize(Number(e.target.value))}
+                  className={styles.slider}
+                />
+                <div
+                  className={styles.sizePreview}
+                  style={{ backgroundColor: color, width: size, height: size }}
+                />
+              </div>
+            </div>
+            <button className={styles.clearBtn} onClick={clearCanvas}>
+              <Trash2 size={16} /> Xóa nét vẽ
+            </button>
           </div>
-          <button className={styles.clearBtn} onClick={clearCanvas}>
-            <Trash2 size={15} /> Xóa
-          </button>
-        </div>
 
-        <div className={styles.canvasWrapper}>
-          <canvas
-            ref={canvasRef}
-            width={900}
-            height={520}
-            className={styles.canvas}
-            onMouseDown={startDraw}
-            onMouseMove={draw}
-            onMouseUp={stopDraw}
-            onMouseLeave={stopDraw}
-            onTouchStart={startDraw}
-            onTouchMove={draw}
-            onTouchEnd={stopDraw}
-          />
-        </div>
+          <div className={styles.sideCard}>
+            <h3 className={styles.cardTitle}>Cách chơi</h3>
+            <div className={styles.instructionsList}>
+              <div className={styles.instructionItem}>
+                <div className={styles.instructionNum}>1</div>
+                <span>Chọn màu sắc và kích cỡ nét vẽ ở trên.</span>
+              </div>
+              <div className={styles.instructionItem}>
+                <div className={styles.instructionNum}>2</div>
+                <span>Chạm và di chuyển trên mặt cát để vẽ tự do.</span>
+              </div>
+              <div className={styles.instructionItem}>
+                <div className={styles.instructionNum}>3</div>
+                <span>Lắng nghe âm thanh xào xạc của cát biển.</span>
+              </div>
+            </div>
+          </div>
 
-        <p className={styles.hint}>Vẽ tự do trên cát — xóa đi mọi lo âu theo từng nét bút ✨</p>
+
+        </div>
+        </div>
       </div>
     </Shell>
   );

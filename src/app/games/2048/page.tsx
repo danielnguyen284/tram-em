@@ -1,8 +1,8 @@
 'use client';
 
 import Shell from '@/components/layout/Shell';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
-import Link from 'next/link';
+import { RefreshCw, Volume2, VolumeX } from 'lucide-react';
+import Breadcrumb from '@/components/ui/Breadcrumb';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './twenty-forty-eight.module.css';
 
@@ -234,30 +234,54 @@ export default function TwentyFortyEightPage() {
     move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up');
   }, [move]);
 
+  const [isAudioMuted, setIsAudioMuted] = useState(false);
+  const ambientRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Ambient background music for 2048
+    const audio = new Audio('https://cdn.pixabay.com/download/audio/2022/08/02/audio_884fe92c21.mp3?filename=relaxing-145038.mp3');
+    audio.loop = true;
+    audio.volume = isAudioMuted ? 0 : 0.18;
+    audio.play().catch(() => {});
+    ambientRef.current = audio;
+    return () => { audio.pause(); };
+  }, []);
+
+  useEffect(() => {
+    if (ambientRef.current) {
+      ambientRef.current.volume = isAudioMuted ? 0 : 0.18;
+    }
+  }, [isAudioMuted]);
+
   return (
     <Shell>
       <div className={styles.page}>
-        <div className={styles.topBar}>
-          <Link href="/games" className={styles.backLink}>
-            <ArrowLeft size={18} />
-            Quay lại
-          </Link>
-          <button type="button" className={styles.resetButton} onClick={reset}>
-            <RefreshCw size={16} />
-            Chơi lại
-          </button>
-        </div>
-
-        <header className={styles.header}>
-          <div>
-            <h1>2048</h1>
-            <p>Ghép các ô cùng số để tạo ô 2048. Dùng phím mũi tên, WASD hoặc vuốt trên màn hình.</p>
-          </div>
-          <div className={styles.scoreBox}>
-            <span>Điểm</span>
-            <strong>{game.score}</strong>
+        <header className={styles.hero}>
+          <Breadcrumb items={[{ label: 'Games', href: '/games' }, { label: 'Xếp Số 2048' }]} />
+          <div className={styles.titleBlock}>
+            <div className={styles.mascot} aria-hidden="true">
+              <span className={styles.mascotFace}>•ᴗ•</span>
+            </div>
+            <div>
+              <span className={styles.category}>Giải đố / Thư giãn</span>
+              <h1>Xếp Số 2048</h1>
+              <p>Gạt để gộp các ô số giống nhau, từ từ tạo ra con số 2048 trong nền nhạc êm dịu.</p>
+            </div>
+            
+            <button
+              onClick={() => setIsAudioMuted(!isAudioMuted)}
+              className={styles.muteBtn}
+              title={isAudioMuted ? 'Mở âm thanh' : 'Tắt âm thanh'}
+              type="button"
+            >
+              {isAudioMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              <span>{isAudioMuted ? 'Tắt tiếng' : 'Mở tiếng'}</span>
+            </button>
           </div>
         </header>
+
+        <div className={styles.layout}>
+          <div className={styles.gamePanel}>
 
         <section
           className={styles.board}
@@ -291,11 +315,36 @@ export default function TwentyFortyEightPage() {
           )}
         </section>
 
-        <div className={styles.controls} aria-label="Điều khiển 2048">
-          <button type="button" onClick={() => move('up')}>Lên</button>
-          <button type="button" onClick={() => move('left')}>Trái</button>
-          <button type="button" onClick={() => move('down')}>Xuống</button>
-          <button type="button" onClick={() => move('right')}>Phải</button>
+          </div>
+          <div className={styles.sidePanel}>
+            <div className={styles.sideCard}>
+              <h3 className={styles.cardTitle}>Thành tích</h3>
+              <div className={styles.statRow}>
+                <span className={styles.statLabel}>Điểm số</span>
+                <strong className={styles.statValue}>{game.score}</strong>
+              </div>
+            </div>
+            <div className={styles.sideCard}>
+              <h3 className={styles.cardTitle}>Hướng dẫn</h3>
+              <ul className={styles.instructionList}>
+                <li>Dùng phím mũi tên hoặc vuốt trên màn hình để gạt các ô.</li>
+                <li>Hai ô có cùng số sẽ gộp lại thành một.</li>
+                <li>Mục tiêu là tạo ra ô có số 2048.</li>
+              </ul>
+              <div className={styles.actionGroup}>
+                <button type="button" className={styles.resetBtn} onClick={reset}>
+                  <RefreshCw size={16} />
+                  Chơi lại
+                </button>
+              </div>
+            </div>
+            <div className={styles.sideCard}>
+              <img src="/images/ai-mascot.svg" alt="Mascot" className={styles.mascotImage} />
+              <div className={styles.mascotSpeechBubble}>
+                "Cứ bình tĩnh gộp từng ô một nhé! Không cần vội đâu, hãy tận hưởng nền nhạc thư giãn!"
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </Shell>

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Settings } from 'lucide-react';
 import styles from './profile.module.css';
 import ProfileAvatar from './ProfileAvatar';
+import { BADGES } from '@/lib/badges';
 
 export const dynamic = 'force-dynamic';
 
@@ -31,23 +32,30 @@ export default async function ProfilePage() {
       : '/images/avatar-default-male.png';
   const displayName = profile?.display_name ?? user.user_metadata?.full_name ?? user.email?.split('@')[0];
 
-  // Dynamic statistics calculations
+  // Dynamic statistics
   const daysAccompanying = Math.max(
     1,
     Math.ceil((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24))
   );
 
-  // Exact community posts count
   const { count: postsCount } = await supabase
     .from('posts')
     .select('*', { count: 'exact', head: true })
     .eq('author_id', user.id);
 
-  // Exact orders count
   const { count: ordersCount } = await supabase
     .from('orders')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id);
+
+  // Fetch earned badges from DB (client will compute/unlock new ones to trigger toasts)
+  const { data: badgesData } = await supabase
+    .from('user_badges')
+    .select('badge_id')
+    .eq('user_id', user.id);
+  
+  const earnedBadgeIds = (badgesData || []).map(b => b.badge_id);
+  const earnedSet = new Set(earnedBadgeIds);
 
   return (
     <Shell>
@@ -80,7 +88,7 @@ export default async function ProfilePage() {
             <span className={styles.statsLabel}>đơn hàng</span>
           </div>
           <div className={styles.statsCard}>
-            <span className={styles.statsNum}>4</span>
+            <span className={styles.statsNum}>{earnedSet.size}</span>
             <span className={styles.statsLabel}>huy hiệu</span>
           </div>
         </div>
@@ -88,65 +96,35 @@ export default async function ProfilePage() {
         <div className={styles.badgesSection}>
           <h3 className={styles.sectionTitle}>Huy hiệu</h3>
           <div className={styles.badgesGrid}>
-            <div className={styles.badgeCard}>
-              <div className={`${styles.badgeIconWrapper} ${styles.beginnerBg}`}>
-                <Image
-                  src="/images/badges/beginner.png"
-                  alt="Người mới bắt đầu"
-                  width={72}
-                  height={72}
-                  className={styles.badgeImg}
-                  priority
-                />
-              </div>
-              <strong className={styles.badgeName}>Người mới bắt đầu</strong>
-              <span className={styles.badgeDesc}>Người thấu cảm</span>
-            </div>
-
-            <div className={styles.badgeCard}>
-              <div className={`${styles.badgeIconWrapper} ${styles.listeningBg}`}>
-                <Image
-                  src="/images/badges/listening.png"
-                  alt="Lắng nghe"
-                  width={72}
-                  height={72}
-                  className={styles.badgeImg}
-                  priority
-                />
-              </div>
-              <strong className={styles.badgeName}>Lắng nghe</strong>
-              <span className={styles.badgeDesc}>Người đồng hành</span>
-            </div>
-
-            <div className={styles.badgeCard}>
-              <div className={`${styles.badgeIconWrapper} ${styles.loveBg}`}>
-                <Image
-                  src="/images/badges/love.png"
-                  alt="Chia sẻ yêu thương"
-                  width={72}
-                  height={72}
-                  className={styles.badgeImg}
-                  priority
-                />
-              </div>
-              <strong className={styles.badgeName}>Chia sẻ yêu thương</strong>
-              <span className={styles.badgeDesc}>Huy hiệu khám phá</span>
-            </div>
-
-            <div className={styles.badgeCard}>
-              <div className={`${styles.badgeIconWrapper} ${styles.musicBg}`}>
-                <Image
-                  src="/images/badges/music.png"
-                  alt="Chăm sóc bản nhạc"
-                  width={72}
-                  height={72}
-                  className={styles.badgeImg}
-                  priority
-                />
-              </div>
-              <strong className={styles.badgeName}>Chăm sóc bản nhạc</strong>
-              <span className={styles.badgeDesc}>Lắng nghe thanh âm</span>
-            </div>
+            {BADGES.map((badge) => {
+              const earned = earnedSet.has(badge.id);
+              return (
+                <div
+                  key={badge.id}
+                  className={`${styles.badgeCard} ${earned ? '' : styles.badgeLocked}`}
+                  title={earned ? badge.description : `Chưa mở khóa — ${badge.description}`}
+                >
+                  <div className={`${styles.badgeIconWrapper} ${styles[badge.bgClass]}`}>
+                    {badge.image ? (
+                      <Image 
+                        src={badge.image} 
+                        alt={badge.name} 
+                        width={64} 
+                        height={64} 
+                        className={styles.badgeImg} 
+                      />
+                    ) : (
+                      <span className={styles.badgeEmoji} aria-hidden="true">
+                        {badge.emoji}
+                      </span>
+                    )}
+                    {!earned && <span className={styles.lockOverlay}>🔒</span>}
+                  </div>
+                  <strong className={styles.badgeName}>{badge.name}</strong>
+                  <span className={styles.badgeDesc}>{badge.description}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>

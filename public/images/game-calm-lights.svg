@@ -1,0 +1,74 @@
+<svg width="720" height="720" viewBox="0 0 720 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="720" height="720" rx="56" fill="#FDF8F7"/>
+  <!-- Cozy Night Arched Window Frame background -->
+  <path d="M120 720V320C120 187.45 227.45 80 360 80C492.55 80 600 187.45 600 320V720H120Z" fill="#251735" opacity="0.9"/>
+  <!-- Stars and Crescent Moon inside window -->
+  <path d="M460 170C460 214.18 424.18 250 380 250C365 250 351 245.5 339 237.8C362.4 246.3 389.2 242.2 408.8 222.6C428.4 203 432.5 176.2 424 152.8C445 151.7 460 159.2 460 170Z" fill="#FFF7D6"/>
+  <circle cx="200" cy="220" r="6" fill="#FFF" opacity="0.6"/>
+  <circle cx="280" cy="180" r="4" fill="#FFF" opacity="0.8"/>
+  <circle cx="480" cy="280" r="5" fill="#FFF" opacity="0.4"/>
+  <circle cx="240" cy="360" r="5" fill="#FFF" opacity="0.7"/>
+
+  <!-- Clouds -->
+  <path d="M500 500C500 472.4 522.4 450 550 450C555.2 450 560.2 450.8 565 452.4C574 433.4 593 420 615 420C642.6 420 665 442.4 665 470C665 472.2 664.8 474.4 664.4 476.6C673.2 481.6 679 491.1 679 502C679 518.6 665.6 532 649 532H533C514.8 532 500 517.2 500 500Z" fill="#FFF" opacity="0.15"/>
+  <path d="M50 580C50 552.4 72.4 530 100 530C105.2 530 110.2 530.8 115 532.4C124 513.4 143 500 165 500C192.6 500 215 522.4 215 550C215 552.2 214.8 554.4 214.4 556.6C223.2 561.6 229 571.1 229 582C229 598.6 215.6 612 199 612H83C64.8 612 50 597.2 50 580Z" fill="#FFF" opacity="0.15"/>
+
+  <!-- Hanging Strings / Wires -->
+  <line x1="220" y1="80" x2="220" y2="340" stroke="#7E5F9E" stroke-width="4"/>
+  <line x1="360" y1="80" x2="360" y2="260" stroke="#7E5F9E" stroke-width="4"/>
+  <line x1="500" y1="80" x2="500" y2="320" stroke="#7E5F9E" stroke-width="4"/>
+
+  <!-- Glows under active lamps -->
+  <circle cx="360" cy="300" r="120" fill="#FFEDB3" opacity="0.25" filter="blur(30px)"/>
+  <circle cx="220" cy="380" r="100" fill="#FFAEC9" opacity="0.15" filter="blur(20px)"/>
+  <circle cx="500" cy="360" r="100" fill="#C5B3FF" opacity="0.15" filter="blur(20px)"/>
+
+  <!-- Lamp 1 (Left - Pink Bell Lamp) -->
+  <g transform="translate(220, 380)">
+    <!-- String Cap -->
+    <rect x="-10" y="-50" width="20" height="15" rx="4" fill="#8E6FA3"/>
+    <!-- Glowing shade -->
+    <path d="M-40 -35C-40 -35 -20 -35 -20 -15C-20 5 -50 5 -50 25C-50 45 -25 50 0 50C25 50 50 45 50 25C50 5 20 5 20 -15C20 -35 40 -35 40 -35H-40Z" fill="#FFAEC9" stroke="#E58BA3" stroke-width="6"/>
+    <!-- Yellow bulb glowing inside -->
+    <circle cx="0" cy="20" r="16" fill="#FFF"/>
+  </g>
+
+  <!-- Lamp 2 (Middle - Golden Cloud Lamp) -->
+  <g transform="translate(360, 300)">
+    <!-- String Cap -->
+    <rect x="-12" y="-50" width="24" height="15" rx="4" fill="#8E6FA3"/>
+    <!-- Cloud Shade -->
+    <path d="M-60 10C-60 -8.6 -44.6 -24 -26 -24C-22.4 -24 -19 -23.4 -15.8 -22.3C-9.5 -35.6 3.8 -45 19.3 -45C38.6 -45 54.2 -31.4 57.2 -13.5C63.4 -10 67.5 -3.5 67.5 4C67.5 15.6 58.1 25 46.5 25H-47C-54.2 25 -60 19.2 -60 12V10Z" fill="#FFEDB3" stroke="#DCBD68" stroke-width="6"/>
+    <!-- Bulb inside -->
+    <circle cx="6" cy="5" r="18" fill="#FFF"/>
+  </g>
+
+  <!-- Lamp 3 (Right - Purple Bell Lamp) -->
+  <g transform="translate(500, 360)">
+    <!-- String Cap -->
+    <rect x="-10" y="-50" width="20" height="15" rx="4" fill="#8E6FA3"/>
+    <!-- Glowing shade -->
+    <path d="M-40 -35C-40 -35 -20 -35 -20 -15C-20 5 -50 5 -50 25C-50 45 -25 50 0 50C25 50 50 45 50 25C50 5 20 5 20 -15C20 -35 40 -35 40 -35H-40Z" fill="#D4C5FF" stroke="#A694DC" stroke-width="6"/>
+    <!-- Yellow bulb inside -->
+    <circle cx="0" cy="20" r="16" fill="#FFF"/>
+  </g>
+
+  <!-- Room Silhouette/Foreground elements for Cozy feel -->
+  <path d="M0 640C120 620 200 650 360 630C520 610 600 640 720 620V720H0V640Z" fill="#1C112A"/>
+  <!-- Cozy Bed / Sofa Cushion curve -->
+  <path d="M160 720C160 670 210 630 300 630H420C510 630 560 670 560 720H160Z" fill="#2E1C42"/>
+  <!-- Star shape pillow -->
+  <path d="M360 640L375 670L408 672L382 692L390 720L360 705L330 720L338 692L312 672L345 670L360 640Z" fill="#F2D4A7"/>
+  <!-- Little cute mascot cloud on the left side of sofa -->
+  <g transform="translate(230, 675)">
+    <path d="M-30 10C-30 0 -20 -10 0 -10C20 -10 30 0 30 10C30 20 20 30 0 30C-20 30 -30 20 -30 10Z" fill="#FFF"/>
+    <circle cx="-10" cy="8" r="3" fill="#6B5B82"/>
+    <circle cx="10" cy="8" r="3" fill="#6B5B82"/>
+    <path d="M-4 15C-4 15 -1 18 2 15" stroke="#6B5B82" stroke-width="2" stroke-linecap="round"/>
+  </g>
+
+  <!-- Title/Encouragement style stars -->
+  <g transform="translate(360, 480)">
+    <path d="M0 -30L5 -10L25 -10L10 2L15 22L0 10L-15 22L-10 2L-25 -10L-5 -10L0 -30Z" fill="#FFF" opacity="0.3"/>
+  </g>
+</svg>

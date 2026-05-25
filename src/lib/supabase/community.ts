@@ -1,4 +1,12 @@
-import type { Comment, PopularTag, Post } from '@/types/database';
+import type {
+  Comment,
+  CommunityBadge,
+  CommunityProfile,
+  CommunityProfileComment,
+  CommunityProfileRepost,
+  PopularTag,
+  Post,
+} from '@/types/database';
 import {
   DEFAULT_COMMUNITY_MODERATION_TERMS,
   evaluateCommunityContent,
@@ -41,12 +49,17 @@ function commentsCountFromJoin(value: unknown) {
   return (value as { count: number }[] | undefined)?.[0]?.count ?? 0;
 }
 
-function enrichPost(post: Post & { comments?: unknown }, likedPostIds: Set<string>): Post {
+function enrichPost(
+  post: Post & { comments?: unknown },
+  likedPostIds: Set<string>,
+  repostedPostIds = new Set<string>(),
+): Post {
   return {
     ...post,
     author: post.author ?? undefined,
     comments_count: commentsCountFromJoin(post.comments),
     liked_by_user: likedPostIds.has(post.id),
+    reposted_by_user: repostedPostIds.has(post.id),
   };
 }
 
@@ -76,17 +89,26 @@ export async function getPosts(options: GetPostsOptions = {}): Promise<Post[]> {
       return [];
     }
 
-    // Check which posts the current user has liked
     let likedPostIds = new Set<string>();
+    let repostedPostIds = new Set<string>();
     if (user) {
-      const { data: likes } = await supabase
-        .from('post_likes')
-        .select('post_id')
-        .eq('user_id', user.id);
+      const [{ data: likes }, { data: reposts }] = await Promise.all([
+        supabase
+          .from('post_likes')
+          .select('post_id')
+          .eq('user_id', user.id),
+        supabase
+          .from('post_reposts')
+          .select('post_id')
+          .eq('user_id', user.id),
+      ]);
       likedPostIds = new Set((likes ?? []).map((l) => l.post_id));
+      repostedPostIds = new Set((reposts ?? []).map((repost) => repost.post_id));
     }
 
-    return (data ?? []).map((post: any) => enrichPost(post as Post & { comments?: unknown }, likedPostIds));
+    return (data ?? []).map((post: unknown) =>
+      enrichPost(post as Post & { comments?: unknown }, likedPostIds, repostedPostIds),
+    );
   } catch (err) {
     console.warn('Network error fetching posts. Returning empty list.', err);
     return [];
@@ -112,15 +134,23 @@ export async function getPostById(postId: string): Promise<Post | null> {
     if (error || !data) return null;
 
     let likedPostIds = new Set<string>();
+    let repostedPostIds = new Set<string>();
     if (user) {
-      const { data: likes } = await supabase
-        .from('post_likes')
-        .select('post_id')
-        .eq('user_id', user.id);
+      const [{ data: likes }, { data: reposts }] = await Promise.all([
+        supabase
+          .from('post_likes')
+          .select('post_id')
+          .eq('user_id', user.id),
+        supabase
+          .from('post_reposts')
+          .select('post_id')
+          .eq('user_id', user.id),
+      ]);
       likedPostIds = new Set((likes ?? []).map((l) => l.post_id));
+      repostedPostIds = new Set((reposts ?? []).map((repost) => repost.post_id));
     }
 
-    return enrichPost(data as Post & { comments?: unknown }, likedPostIds);
+    return enrichPost(data as Post & { comments?: unknown }, likedPostIds, repostedPostIds);
   } catch {
     return null;
   }
@@ -179,6 +209,157 @@ export async function getPopularTags(limit = 8): Promise<PopularTag[]> {
   }
 }
 
+// Import BADGES at the top of the file instead of redefining them
+import { BADGES } from '../badges';
+
+function buildCommunityBadges(earnedBadgeIds: Set<string>): CommunityBadge[] {
+  return BADGES.map((badge) => ({
+    id: badge.id,
+    name: badge.name,
+    description: badge.description,
+    image: badge.image || '/images/badges/music.png', // Fallback
+    earned: earnedBadgeIds.has(badge.id),
+  }));
+}
+
+export async function getCommunityProfile(profileId: string): Promise<CommunityProfile | null> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id, display_name, avatar_url, gender, username, created_at')
+      .eq('id', profileId)
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+    if (!profile) return null;
+
+    const [
+      { data: postsData, error: postsError, count: postsCount },
+      { data: commentsData, error: commentsError },
+      { data: repostsData, error: repostsError },
+      { data: badgesData, error: badgesError },
+    ] = await Promise.all([
+      supabase
+        .from('posts')
+        .select(`
+          *,
+          author:profiles!posts_author_id_fkey(id, display_name, avatar_url, gender),
+          comments(count)
+        `, { count: 'exact' })
+        .eq('author_id', profileId)
+        .eq('moderation_status', 'approved')
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('comments')
+        .select(`
+          *,
+          post:posts(id, content, created_at, moderation_status)
+        `, { count: 'exact' })
+        .eq('author_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('post_reposts')
+        .select(`
+          user_id,
+          post_id,
+          created_at,
+          post:posts(
+            *,
+            author:profiles!posts_author_id_fkey(id, display_name, avatar_url, gender),
+            comments(count)
+          )
+        `)
+        .eq('user_id', profileId)
+        .order('created_at', { ascending: false })
+        .limit(50),
+      supabase
+        .from('user_badges')
+        .select('badge_id')
+        .eq('user_id', profileId),
+    ]);
+
+    if (postsError) throw postsError;
+    if (commentsError) throw commentsError;
+    if (repostsError) throw repostsError;
+    if (badgesError) throw badgesError;
+
+    let likedPostIds = new Set<string>();
+    let repostedPostIds = new Set<string>();
+    if (user) {
+      const [{ data: likes }, { data: reposts }] = await Promise.all([
+        supabase
+          .from('post_likes')
+          .select('post_id')
+          .eq('user_id', user.id),
+        supabase
+          .from('post_reposts')
+          .select('post_id')
+          .eq('user_id', user.id),
+      ]);
+      likedPostIds = new Set((likes ?? []).map((like) => like.post_id));
+      repostedPostIds = new Set((reposts ?? []).map((repost) => repost.post_id));
+    }
+
+    const posts = (postsData ?? []).map((post: unknown) =>
+      enrichPost(post as Post & { comments?: unknown }, likedPostIds, repostedPostIds),
+    );
+    const publicComments = (commentsData ?? [])
+      .map((comment: unknown) => comment as CommunityProfileComment & { post?: (Post & { moderation_status?: string }) | null })
+      .filter((comment) => comment.post?.moderation_status === 'approved')
+      .map((comment) => ({
+        ...comment,
+        post: comment.post
+          ? {
+              id: comment.post.id,
+              content: comment.post.content,
+              created_at: comment.post.created_at,
+            }
+          : null,
+      }));
+    const publicReposts = (repostsData ?? [])
+      .map((repost: unknown) => repost as CommunityProfileRepost & { post?: (Post & { comments?: unknown }) | null })
+      .filter((repost) => repost.post?.moderation_status === 'approved')
+      .map((repost) => ({
+        ...repost,
+        post: repost.post ? enrichPost(repost.post, likedPostIds, repostedPostIds) : null,
+      }));
+    const totalLikes = posts.reduce((sum, post) => sum + Number(post.likes_count ?? 0), 0);
+    const daysActive = Math.max(
+      1,
+      Math.ceil((Date.now() - new Date(profile.created_at).getTime()) / (1000 * 60 * 60 * 24)),
+    );
+    const badgeStats = {
+      postsCount: postsCount ?? posts.length,
+      commentsCount: publicComments.length,
+      repostsCount: publicReposts.length,
+      totalLikes,
+      daysActive,
+    };
+    const earnedBadgeIds = new Set((badgesData ?? []).map(b => b.badge_id));
+    const badges = buildCommunityBadges(earnedBadgeIds);
+
+    return {
+      profile,
+      stats: {
+        ...badgeStats,
+        earnedBadgesCount: earnedBadgeIds.size,
+      },
+      badges,
+      posts,
+      comments: publicComments,
+      reposts: publicReposts,
+    };
+  } catch (err) {
+    console.warn('Error fetching community profile:', err);
+    return null;
+  }
+}
+
 export async function createPost(content: string, imageUrl?: string, tags?: string[]): Promise<Post> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -207,6 +388,100 @@ export async function createPost(content: string, imageUrl?: string, tags?: stri
 
   if (error) throw error;
   return data as Post;
+}
+
+export async function updatePost(
+  postId: string,
+  content: string,
+  imageUrl?: string | null,
+  tags?: string[],
+): Promise<Post> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const trimmedContent = content.trim();
+  if (!trimmedContent) {
+    throw new Error('Nội dung bài viết không được để trống.');
+  }
+
+  const { data: existing, error: existingError } = await supabase
+    .from('posts')
+    .select(`
+      *,
+      author:profiles!posts_author_id_fkey(id, display_name, avatar_url, gender),
+      comments(count)
+    `)
+    .eq('id', postId)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+  if (!existing || existing.author_id !== user.id) {
+    throw new Error('Bạn chỉ có thể chỉnh sửa bài viết của mình.');
+  }
+
+  const moderationTerms = await getModerationTermsForEvaluation();
+  const moderation = evaluateCommunityContent(trimmedContent, moderationTerms);
+
+  if (moderation.status === 'blocked') {
+    throw new Error('Nội dung có từ ngữ không được phép đăng trong cộng đồng.');
+  }
+
+  const nextPost = {
+    ...(existing as Post & { comments?: unknown }),
+    content: trimmedContent,
+    image_url: imageUrl ?? null,
+    tags: tags ?? [],
+    moderation_status: moderation.status,
+    moderation_reason: moderation.reason,
+    moderation_matches: moderation.matches,
+    reviewed_by: null,
+    reviewed_at: null,
+    updated_at: new Date().toISOString(),
+  } satisfies Post & { comments?: unknown };
+
+  const { error } = await supabase
+    .from('posts')
+    .update({
+      content: trimmedContent,
+      image_url: imageUrl ?? null,
+      tags: tags ?? [],
+      moderation_status: moderation.status,
+      moderation_reason: moderation.reason,
+      moderation_matches: moderation.matches,
+      reviewed_by: null,
+      reviewed_at: null,
+    })
+    .eq('id', postId)
+    .eq('author_id', user.id);
+
+  if (error) throw error;
+  return enrichPost(nextPost, new Set(existing.liked_by_user ? [postId] : []));
+}
+
+export async function deletePost(postId: string): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: existing, error: existingError } = await supabase
+    .from('posts')
+    .select('id, author_id')
+    .eq('id', postId)
+    .maybeSingle();
+
+  if (existingError) throw existingError;
+  if (!existing || existing.author_id !== user.id) {
+    throw new Error('Bạn chỉ có thể xóa bài viết của mình.');
+  }
+
+  const { error } = await supabase
+    .from('posts')
+    .delete()
+    .eq('id', postId)
+    .eq('author_id', user.id);
+
+  if (error) throw error;
 }
 
 export async function toggleLike(postId: string) {
@@ -265,6 +540,73 @@ export async function toggleLike(postId: string) {
 
     return true; // liked
   }
+}
+
+export async function toggleRepost(postId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: post, error: postError } = await supabase
+    .from('posts')
+    .select('id, author_id, content, moderation_status')
+    .eq('id', postId)
+    .maybeSingle();
+
+  if (postError) throw postError;
+  if (!post || post.moderation_status !== 'approved') {
+    throw new Error('Bài viết không tồn tại hoặc chưa được duyệt.');
+  }
+  if (post.author_id === user.id) {
+    throw new Error('Bạn chỉ có thể đăng lại bài viết của người khác.');
+  }
+
+  const { data: existing } = await supabase
+    .from('post_reposts')
+    .select('user_id')
+    .eq('user_id', user.id)
+    .eq('post_id', postId)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from('post_reposts')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('post_id', postId);
+    if (error) throw error;
+    return false;
+  }
+
+  const { error } = await supabase
+    .from('post_reposts')
+    .insert({ user_id: user.id, post_id: postId });
+
+  if (error) throw error;
+
+  try {
+    if (post.author_id) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', user.id)
+        .single();
+      const userName = profile?.display_name || user.email?.split('@')[0] || 'Ai đó';
+
+      await adminSupabase.from('notifications').insert({
+        user_id: post.author_id,
+        icon: 'repeat',
+        title: 'Cộng đồng',
+        body: `${userName} đã đăng lại bài viết của bạn: "${post.content.substring(0, 40)}${post.content.length > 40 ? '...' : ''}"`,
+        href: `/community/post/${postId}`,
+        is_read: false,
+      });
+    }
+  } catch (notifErr) {
+    console.warn('Failed to send post repost notification:', notifErr);
+  }
+
+  return true;
 }
 
 export async function getComments(postId: string): Promise<Comment[]> {
@@ -453,4 +795,3 @@ export async function toggleCommentLike(commentId: string) {
     return true; // liked
   }
 }
-

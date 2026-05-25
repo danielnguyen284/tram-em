@@ -119,12 +119,14 @@ create table if not exists posts (
   moderation_matches text[] not null default '{}',
   reviewed_by uuid references profiles(id) on delete set null,
   reviewed_at timestamptz,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
 );
 
 alter table posts enable row level security;
 create policy "Approved posts viewable by everyone" on posts for select using (moderation_status = 'approved');
 create policy "Auth users create posts" on posts for insert with check (auth.uid() = author_id);
+create policy "Authors update own posts" on posts for update using (auth.uid() = author_id) with check (auth.uid() = author_id);
 create policy "Authors delete own posts" on posts for delete using (auth.uid() = author_id);
 
 create index if not exists posts_moderation_status_created_at_idx
@@ -162,6 +164,47 @@ drop trigger if exists on_post_like_change on post_likes;
 create trigger on_post_like_change
   after insert or delete on post_likes
   for each row execute function update_post_likes_count();
+
+-- ─── Post Reposts ─────────────────────────────────────────────
+create table if not exists post_reposts (
+  user_id uuid references auth.users(id) on delete cascade,
+  post_id uuid references posts(id) on delete cascade,
+  created_at timestamptz default now(),
+  primary key (user_id, post_id)
+);
+
+alter table post_reposts enable row level security;
+create policy "Reposts viewable by everyone" on post_reposts for select using (true);
+create policy "Auth users can repost others" on post_reposts
+  for insert with check (
+    auth.uid() = user_id
+    and exists (
+      select 1 from posts
+      where posts.id = post_id
+        and posts.author_id <> auth.uid()
+        and posts.moderation_status = 'approved'
+    )
+  );
+create policy "Auth users can undo repost" on post_reposts for delete using (auth.uid() = user_id);
+
+create or replace function update_post_reposts_count()
+returns trigger as $$
+begin
+  if TG_OP = 'INSERT' then
+    update posts set reposts_count = reposts_count + 1 where id = NEW.post_id;
+    return NEW;
+  elsif TG_OP = 'DELETE' then
+    update posts set reposts_count = greatest(reposts_count - 1, 0) where id = OLD.post_id;
+    return OLD;
+  end if;
+  return null;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists on_post_repost_change on post_reposts;
+create trigger on_post_repost_change
+  after insert or delete on post_reposts
+  for each row execute function update_post_reposts_count();
 
 -- ─── Comments ────────────────────────────────────────────────
 create table if not exists comments (
@@ -450,6 +493,8 @@ create trigger products_updated_at before update on products
   for each row execute function update_updated_at();
 create trigger product_categories_updated_at before update on product_categories
   for each row execute function update_updated_at();
+create trigger posts_updated_at before update on posts
+  for each row execute function update_updated_at();
 create trigger orders_updated_at before update on orders
   for each row execute function update_updated_at();
 create trigger shipping_addresses_updated_at before update on shipping_addresses
@@ -460,3 +505,39 @@ create trigger cart_items_updated_at before update on cart_items
   for each row execute function update_updated_at();
 create trigger community_moderation_terms_updated_at before update on community_moderation_terms
   for each row execute function update_updated_at();
+
+-- ─── User Badges ─────────────────────────────────────────────
+-- Stores earned badges per user. badge_id is a string slug (e.g. 'first_step').
+create table if not exists user_badges (
+  user_id    uuid references auth.users(id) on delete cascade,
+  badge_id   text not null,
+  earned_at  timestamptz default now(),
+  primary key (user_id, badge_id)
+);
+
+alter table user_badges enable row level security;
+create policy "Users see own badges" on user_badges
+  for select using (auth.uid() = user_id);
+-- Inserts are done server-side only (via service role or security definer functions)
+create policy "Service role insert badges" on user_badges
+  for insert with check (true);
+
+-- ─── User Activity Logs ──────────────────────────────────────
+-- One row per (user_id, activity_type) — idempotent for badge tracking purposes.
+-- Valid activity_type values: 'soundscape_play', 'breathing_complete', 'game_play'
+create table if not exists user_activity_logs (
+  user_id        uuid references auth.users(id) on delete cascade,
+  activity_type  text not null,
+  logged_at      timestamptz default now(),
+  primary key (user_id, activity_type)
+);
+
+alter table user_activity_logs enable row level security;
+create policy "Users see own activity logs" on user_activity_logs
+  for select using (auth.uid() = user_id);
+create policy "Users insert own activity logs" on user_activity_logs
+  for insert with check (auth.uid() = user_id);
+-- Allow upsert (server-side via API route)
+create policy "Users upsert own activity logs" on user_activity_logs
+  for update using (auth.uid() = user_id);
+

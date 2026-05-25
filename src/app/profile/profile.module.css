@@ -221,6 +221,7 @@
 }
 
 .badgeIconWrapper {
+  position: relative;
   width: 96px;
   height: 96px;
   border-radius: 50%;
@@ -229,26 +230,89 @@
   justify-content: center;
   margin-bottom: 12px;
   box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
+  overflow: hidden;
 }
 
-.beginnerBg {
+.badgeImg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.1));
+}
+
+/* ── Badge Background Colors (12 badges) ─────────────── */
+.badgeBgFirstStep {
   background: radial-gradient(circle, #f5f3ff 0%, #ede9fe 100%);
   border: 1px solid #ddd6fe;
 }
-
-.listeningBg {
+.badgeBgStoryteller {
   background: radial-gradient(circle, #fff7ed 0%, #ffedd5 100%);
   border: 1px solid #fed7aa;
 }
-
-.loveBg {
+.badgeBgVoiceOfTen {
+  background: radial-gradient(circle, #fff1f2 0%, #ffe4e6 100%);
+  border: 1px solid #fecdd3;
+}
+.badgeBgWarmHeart {
+  background: radial-gradient(circle, #fefce8 0%, #fef9c3 100%);
+  border: 1px solid #fde68a;
+}
+.badgeBgListener {
+  background: radial-gradient(circle, #eff6ff 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+}
+.badgeBgBreathing {
+  background: radial-gradient(circle, #f0fdf4 0%, #dcfce7 100%);
+  border: 1px solid #bbf7d0;
+}
+.badgeBgGame {
+  background: radial-gradient(circle, #ecfeff 0%, #cffafe 100%);
+  border: 1px solid #a5f3fc;
+}
+.badgeBgShopper {
   background: radial-gradient(circle, #fdf4ff 0%, #fae8ff 100%);
   border: 1px solid #f5d0fe;
 }
+.badgeBgLoyalShopper {
+  background: radial-gradient(circle, #f5f3ff 0%, #ede9fe 100%);
+  border: 1px solid #c4b5fd;
+}
+.badgeBgAiFriend {
+  background: radial-gradient(circle, #f0fdfa 0%, #ccfbf1 100%);
+  border: 1px solid #99f6e4;
+}
+.badgeBgCommenter {
+  background: radial-gradient(circle, #fefce8 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+}
+.badgeBgVeteran {
+  background: radial-gradient(circle, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fcd34d;
+}
 
-.musicBg {
-  background: radial-gradient(circle, #fcf7ff 0%, #f3e8ff 100%);
-  border: 1px solid #e9d5ff;
+/* ── Badge Emoji ─────────────────────────────────────── */
+.badgeEmoji {
+  font-size: 36px;
+  line-height: 1;
+  display: block;
+}
+
+/* ── Locked Badge ────────────────────────────────────── */
+.badgeLocked {
+  opacity: 0.45;
+  filter: grayscale(80%);
+}
+
+.badgeLocked .badgeIconWrapper {
+  position: relative;
+}
+
+.lockOverlay {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  font-size: 14px;
+  line-height: 1;
 }
 
 .badgeImg {
@@ -286,7 +350,14 @@
   }
 
   .badgesGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .badgesGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
 }
