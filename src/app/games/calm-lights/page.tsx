@@ -91,25 +91,6 @@ const LAMPS: Lamp[] = [
   },
 ];
 
-const MASCOT_HAPPY_PHRASES = [
-  'Giỏi lắm nè! ♡',
-  'Hít sâu thở đều nào...',
-  'Tuyệt cú mèo!',
-  'Đúng rồi đó!',
-  'Bạn giữ nhịp tốt lắm! ♡',
-  'Căn phòng đang sáng dần kìa!',
-  'Cứ bình tĩnh thư giãn nhé...',
-  'Làm tốt lắm bạn ơi!',
-];
-
-const MASCOT_CALM_PHRASES = [
-  'Không sao đâu nè, từ từ lại nhé ♡',
-  'Hít sâu một hơi thật dài nào...',
-  'Bạn đang làm rất tốt, bình tĩnh nhé',
-  'Nhắm mắt lại hít thở một nhịp xem sao...',
-  'Cùng thư giãn cơ thể nào!',
-  'Trò chơi chỉ để giải tỏa căng thẳng thôi nè ♡',
-];
 
 const PENTATONIC_SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00];
 
@@ -258,7 +239,6 @@ export default function CalmLightsPage() {
       if (currentActive !== null && !isCorrectClickedRef.current) {
         setCombo((prev) => {
           if (prev > 0) {
-            setMascotBubble(MASCOT_CALM_PHRASES[Math.floor(Math.random() * MASCOT_CALM_PHRASES.length)]);
             playMissSound();
             return 0;
           }
