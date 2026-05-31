@@ -395,6 +395,7 @@ export default function SoundsClient({ initialSounds }: Props) {
     formData.set('image_url', imageUrl);
     formData.set('audio_url', audioUrl);
     formData.set('duration', durationValue);
+    formData.set('icon', editingSound?.icon ?? 'music');
 
     if (!durationValue || isDurationLoading) {
       alert('Vui lòng upload audio hoặc đợi hệ thống đọc xong thời lượng. Không nhập thời lượng thủ công.');
@@ -410,7 +411,7 @@ export default function SoundsClient({ initialSounds }: Props) {
             category: String(formData.get('category') ?? '').trim(),
             mood: String(formData.get('mood') ?? '').trim() || null,
             duration: durationValue,
-            icon: String(formData.get('icon') ?? '').trim() || null,
+            icon: editingSound.icon ?? 'music',
             image_url: imageUrl || null,
             audio_url: audioUrl,
             is_active: formData.get('is_active') === 'on',
@@ -685,17 +686,6 @@ export default function SoundsClient({ initialSounds }: Props) {
                     >
                       {durationValue || 'Tự cập nhật sau khi upload audio'}
                     </div>
-                  </label>
-
-                  <label style={{ display: 'grid', gap: '6px', color: '#5f5069', fontSize: '13px', fontWeight: 800 }}>
-                    Tên Icon
-                    <input 
-                      name="icon" 
-                      placeholder="rain, forest, music, wind..."
-                      defaultValue={editingSound?.icon ?? ''} 
-                      className={styles.inlineSelect}
-                      style={{ padding: '8px 12px' }}
-                    />
                   </label>
 
                   <div style={{ display: 'grid', gap: '6px', color: '#5f5069', fontSize: '13px', fontWeight: 800 }}>

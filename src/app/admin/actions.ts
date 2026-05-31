@@ -239,17 +239,19 @@ export async function saveSound(formData: FormData) {
   const { data: currentSound } = id
     ? await supabase
         .from('sounds')
-        .select('audio_url')
+        .select('audio_url, icon')
         .eq('id', id)
         .maybeSingle()
     : { data: null };
+
+  const currentSoundDetails = currentSound as { audio_url?: string | null; icon?: string | null } | null;
 
   const payload = {
     name: String(formData.get('name') ?? '').trim(),
     category: String(formData.get('category') ?? '').trim(),
     mood: optionalString(formData.get('mood')),
     duration: nextDuration,
-    icon: optionalString(formData.get('icon')),
+    icon: optionalString(formData.get('icon')) ?? currentSoundDetails?.icon ?? 'music',
     image_url: optionalString(formData.get('image_url')),
     audio_url: nextAudioUrl,
     sort_order: numberValue(formData.get('sort_order')),
@@ -258,7 +260,7 @@ export async function saveSound(formData: FormData) {
 
   if (id) {
     await supabase.from('sounds').update(payload).eq('id', id);
-    await deleteReplacedSoundAudio((currentSound as { audio_url?: string } | null)?.audio_url, nextAudioUrl);
+    await deleteReplacedSoundAudio(currentSoundDetails?.audio_url, nextAudioUrl);
   } else {
     await supabase.from('sounds').insert(payload);
   }
