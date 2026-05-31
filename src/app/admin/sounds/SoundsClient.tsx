@@ -3,7 +3,7 @@
 import { useState, useTransition, useMemo, useEffect, useRef } from 'react';
 import type { Sound } from '@/types/database';
 import { saveSound, deleteSound, toggleSoundActive } from '@/app/admin/actions';
-import { Plus, Edit2, Trash2, X, Play, Pause, Search, Music, Sparkles, Clock, Globe } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Play, Pause, Search, Music, Sparkles, Clock, UploadCloud } from 'lucide-react';
 import styles from '../admin.module.css';
 
 type Props = {
@@ -19,15 +19,108 @@ export default function SoundsClient({ initialSounds }: Props) {
   const [categoryFilter, setCategoryFilter] = useState('all');
   
   const [isPending, startTransition] = useTransition();
+  const [imageUrl, setImageUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [audioUrl, setAudioUrl] = useState('');
+  const [durationValue, setDurationValue] = useState('');
+  const [isDurationLoading, setIsDurationLoading] = useState(false);
+  const [isAudioUploading, setIsAudioUploading] = useState(false);
 
   // Unified audio preview player
   const [playingId, setPlayingId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Sync state if initialSounds changes (RSC page update)
-  useMemo(() => {
-    setSounds(initialSounds);
-  }, [initialSounds]);
+  const inspectAudioUrl = async (url: string) => {
+    try {
+      const response = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+      return {
+        ok: response.ok,
+        status: response.status,
+        contentType: response.headers.get('content-type') ?? 'unknown',
+        contentLength: response.headers.get('content-length') ?? 'unknown',
+      };
+    } catch {
+      return {
+        ok: false,
+        status: 'network-error',
+        contentType: 'unknown',
+        contentLength: 'unknown',
+      };
+    }
+  };
+
+  const formatAudioDuration = (seconds: number) => {
+    const totalSeconds = Math.max(0, Math.round(seconds));
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const remainingSeconds = totalSeconds % 60;
+
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    }
+
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const readAudioDuration = (file: File) => new Promise<string>((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(file);
+    const audio = new Audio();
+    audio.preload = 'metadata';
+
+    const cleanup = () => {
+      URL.revokeObjectURL(objectUrl);
+      audio.removeAttribute('src');
+      audio.load();
+    };
+
+    audio.onloadedmetadata = () => {
+      const duration = audio.duration;
+      cleanup();
+
+      if (!Number.isFinite(duration) || duration <= 0) {
+        reject(new Error('Không đọc được thời lượng audio.'));
+        return;
+      }
+
+      resolve(formatAudioDuration(duration));
+    };
+
+    audio.onerror = () => {
+      cleanup();
+      reject(new Error('Không đọc được metadata audio.'));
+    };
+
+    audio.src = objectUrl;
+  });
+
+  const readRemoteAudioDuration = (url: string) => new Promise<string>((resolve, reject) => {
+    const audio = new Audio();
+    audio.preload = 'metadata';
+
+    const cleanup = () => {
+      audio.removeAttribute('src');
+      audio.load();
+    };
+
+    audio.onloadedmetadata = () => {
+      const duration = audio.duration;
+      cleanup();
+
+      if (!Number.isFinite(duration) || duration <= 0) {
+        reject(new Error('Không đọc được thời lượng audio.'));
+        return;
+      }
+
+      resolve(formatAudioDuration(duration));
+    };
+
+    audio.onerror = () => {
+      cleanup();
+      reject(new Error('Không đọc được metadata audio.'));
+    };
+
+    audio.src = url;
+  });
 
   // Cleanup audio player on unmount
   useEffect(() => {
@@ -37,6 +130,36 @@ export default function SoundsClient({ initialSounds }: Props) {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isOpen || !editingSound?.audio_url) return;
+
+    let cancelled = false;
+
+    readRemoteAudioDuration(editingSound.audio_url)
+      .then((duration) => {
+        if (!cancelled) {
+          setDurationValue(duration);
+          setSounds((prev) => prev.map((sound) => (
+            sound.id === editingSound.id ? { ...sound, duration } : sound
+          )));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setDurationValue(editingSound.duration ?? '');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsDurationLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editingSound, isOpen]);
 
   const categories = useMemo(() => {
     const cats = new Set(sounds.map((s) => s.category).filter(Boolean));
@@ -57,7 +180,7 @@ export default function SoundsClient({ initialSounds }: Props) {
   }, [sounds, search, categoryFilter]);
 
   // Audio Play Toggle
-  const handlePlayToggle = (sound: Sound) => {
+  const handlePlayToggle = async (sound: Sound) => {
     if (playingId === sound.id) {
       if (audioRef.current) {
         audioRef.current.pause();
@@ -75,6 +198,18 @@ export default function SoundsClient({ initialSounds }: Props) {
       }
 
       try {
+        const probe = await inspectAudioUrl(url);
+        if (!probe.ok) {
+          alert(
+            `Không thể truy cập file audio.\n\n` +
+            `URL: ${url}\n` +
+            `Status: ${probe.status}\n` +
+            `Content-Type: ${probe.contentType}\n` +
+            `Content-Length: ${probe.contentLength}`
+          );
+          return;
+        }
+
         const audio = new Audio(url);
         audioRef.current = audio;
         
@@ -87,7 +222,16 @@ export default function SoundsClient({ initialSounds }: Props) {
         };
         
         audio.onerror = (e) => {
-          console.error('Audio load error:', e);
+          console.error('Audio load error:', {
+            event: e,
+            url,
+            code: audio.error?.code,
+            message: audio.error?.message,
+            contentType: probe.contentType,
+            contentLength: probe.contentLength,
+            networkState: audio.networkState,
+            readyState: audio.readyState,
+          });
           triggerAlert(
             'Không thể tải tệp âm thanh này.\n\n' +
             'Lưu ý: Một số dịch vụ (như Pixabay) có lớp bảo vệ chống liên kết trực tiếp (Hotlink Protection) ' +
@@ -99,7 +243,12 @@ export default function SoundsClient({ initialSounds }: Props) {
         const playPromise = audio.play();
         if (playPromise !== undefined) {
           playPromise.catch((err) => {
-            console.error('Audio play failed:', err);
+            console.error('Audio play failed:', {
+              error: err,
+              url,
+              contentType: probe.contentType,
+              contentLength: probe.contentLength,
+            });
             triggerAlert(
               'Không thể phát thử tệp âm thanh này.\n\n' +
               'Định dạng tệp âm thanh không được hỗ trợ bởi trình duyệt, hoặc liên kết bị lỗi chặn truy cập (CORS/Hotlink).'
@@ -123,6 +272,9 @@ export default function SoundsClient({ initialSounds }: Props) {
   const handleAddClick = () => {
     setEditingSound(null);
     setImageUrl('');
+    setAudioUrl('');
+    setDurationValue('');
+    setIsDurationLoading(false);
     setIsOpen(true);
   };
 
@@ -130,6 +282,9 @@ export default function SoundsClient({ initialSounds }: Props) {
   const handleEditClick = (sound: Sound) => {
     setEditingSound(sound);
     setImageUrl(sound.image_url ?? '');
+    setAudioUrl(sound.audio_url ?? '');
+    setDurationValue(sound.duration ?? '');
+    setIsDurationLoading(Boolean(sound.audio_url));
     setIsOpen(true);
   };
 
@@ -173,10 +328,6 @@ export default function SoundsClient({ initialSounds }: Props) {
     });
   };
 
-  // ImgBB Upload Flow
-  const [imageUrl, setImageUrl] = useState('');
-  const [isUploading, setIsUploading] = useState(false);
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -202,6 +353,39 @@ export default function SoundsClient({ initialSounds }: Props) {
     }
   };
 
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsAudioUploading(true);
+    try {
+      const file = files[0];
+      const detectedDuration = await readAudioDuration(file);
+      const body = new FormData();
+      body.append('file', file);
+      body.append('soundName', editingSound?.name ?? file.name);
+      if (editingSound?.id) {
+        body.append('soundId', editingSound.id);
+      }
+
+      const res = await fetch('/api/admin/sounds/upload-audio', { method: 'POST', body });
+      const json = await res.json();
+
+      if (!res.ok || !json.url) {
+        alert(json.error ?? 'Khong the upload audio len Supabase Storage.');
+        return;
+      }
+
+      setAudioUrl(json.url);
+      setDurationValue(detectedDuration);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Khong the upload audio len Supabase Storage.');
+    } finally {
+      setIsAudioUploading(false);
+      e.target.value = '';
+    }
+  };
+
   // Modal Form Submit
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -209,8 +393,30 @@ export default function SoundsClient({ initialSounds }: Props) {
     
     // Synchronize ImgBB URL
     formData.set('image_url', imageUrl);
+    formData.set('audio_url', audioUrl);
+    formData.set('duration', durationValue);
+
+    if (!durationValue || isDurationLoading) {
+      alert('Vui lòng upload audio hoặc đợi hệ thống đọc xong thời lượng. Không nhập thời lượng thủ công.');
+      return;
+    }
 
     startTransition(async () => {
+      const soundId = editingSound?.id;
+      const nextSound: Sound | null = editingSound
+        ? {
+            ...editingSound,
+            name: String(formData.get('name') ?? '').trim(),
+            category: String(formData.get('category') ?? '').trim(),
+            mood: String(formData.get('mood') ?? '').trim() || null,
+            duration: durationValue,
+            icon: String(formData.get('icon') ?? '').trim() || null,
+            image_url: imageUrl || null,
+            audio_url: audioUrl,
+            is_active: formData.get('is_active') === 'on',
+          }
+        : null;
+
       if (editingSound) {
         formData.set('id', editingSound.id);
         formData.set('sort_order', String(editingSound.sort_order));
@@ -221,6 +427,9 @@ export default function SoundsClient({ initialSounds }: Props) {
       }
       
       await saveSound(formData);
+      if (soundId && nextSound) {
+        setSounds((prev) => prev.map((sound) => (sound.id === soundId ? nextSound : sound)));
+      }
       setIsOpen(false);
     });
   };
@@ -459,13 +668,23 @@ export default function SoundsClient({ initialSounds }: Props) {
 
                   <label style={{ display: 'grid', gap: '6px', color: '#5f5069', fontSize: '13px', fontWeight: 800 }}>
                     Thời lượng (định dạng mm:ss)
-                    <input 
-                      name="duration" 
-                      placeholder="10:00"
-                      defaultValue={editingSound?.duration ?? ''} 
-                      className={styles.inlineSelect}
-                      style={{ padding: '8px 12px' }}
-                    />
+                    <input type="hidden" name="duration" value={durationValue} readOnly />
+                    <div
+                      aria-live="polite"
+                      style={{
+                        minHeight: '36px',
+                        border: '1px solid #e1d1e7',
+                        borderRadius: '6px',
+                        background: '#f7f1f9',
+                        color: durationValue ? '#5f5069' : '#9b8aa3',
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '8px 12px',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {durationValue || 'Tự cập nhật sau khi upload audio'}
+                    </div>
                   </label>
 
                   <label style={{ display: 'grid', gap: '6px', color: '#5f5069', fontSize: '13px', fontWeight: 800 }}>
@@ -526,14 +745,44 @@ export default function SoundsClient({ initialSounds }: Props) {
 
                   <label style={{ display: 'grid', gap: '6px', color: '#5f5069', fontSize: '13px', fontWeight: 800, gridColumn: 'span 2' }}>
                     Audio URL (Đường dẫn tệp âm thanh)
-                    <input 
-                      name="audio_url" 
-                      required 
-                      placeholder="https://cdn.pixabay.com/download/audio/..."
-                      defaultValue={editingSound?.audio_url ?? ''} 
-                      className={styles.inlineSelect}
-                      style={{ padding: '8px 12px' }}
-                    />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        name="audio_url"
+                        required
+                        placeholder="https://.../storage/v1/object/public/soundscape-audio/..."
+                        value={audioUrl}
+                        readOnly
+                        className={styles.inlineSelect}
+                        style={{ padding: '8px 12px', minWidth: 0, background: '#f7f1f9', cursor: 'default' }}
+                      />
+                      <label style={{
+                        minHeight: '36px',
+                        border: '1px solid #e1d1e7',
+                        borderRadius: '6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        cursor: isAudioUploading ? 'not-allowed' : 'pointer',
+                        color: '#8164a2',
+                        background: '#faf6fc',
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        opacity: isAudioUploading ? 0.6 : 1,
+                        padding: '0 12px',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        <UploadCloud size={14} />
+                        {isAudioUploading ? 'Dang upload...' : 'Upload audio'}
+                        <input
+                          type="file"
+                          accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/webm,audio/mp4,audio/aac"
+                          onChange={handleAudioUpload}
+                          disabled={isAudioUploading}
+                          style={{ display: 'none' }}
+                        />
+                      </label>
+                    </div>
                   </label>
 
                   <label className={styles.checkbox} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#5f5069', fontSize: '13px', fontWeight: 800, cursor: 'pointer', gridColumn: 'span 2', marginTop: '6px' }}>
@@ -553,14 +802,14 @@ export default function SoundsClient({ initialSounds }: Props) {
                   type="button" 
                   onClick={() => setIsOpen(false)} 
                   className={styles.ghostButton}
-                  disabled={isPending || isUploading}
+                  disabled={isPending || isUploading || isAudioUploading || isDurationLoading}
                 >
                   Hủy
                 </button>
                 <button 
                   type="submit" 
                   className={styles.button}
-                  disabled={isPending || isUploading}
+                  disabled={isPending || isUploading || isAudioUploading || isDurationLoading}
                 >
                   {isPending ? 'Đang lưu...' : 'Lưu track'}
                 </button>

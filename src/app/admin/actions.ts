@@ -37,6 +37,38 @@ function slugify(value: string) {
     .replace(/(^-|-$)+/g, '');
 }
 
+const AUDIO_BUCKET = process.env.SUPABASE_AUDIO_BUCKET || 'soundscape-audio';
+
+function getStorageObjectPath(url: string | null | undefined) {
+  if (!url) return null;
+
+  const marker = `/storage/v1/object/public/${AUDIO_BUCKET}/`;
+  const markerIndex = url.indexOf(marker);
+
+  if (markerIndex === -1) return null;
+
+  const rawPath = url.slice(markerIndex + marker.length).split('?')[0];
+  if (!rawPath) return null;
+
+  return decodeURIComponent(rawPath);
+}
+
+async function deleteReplacedSoundAudio(previousUrl: string | null | undefined, nextUrl: string) {
+  if (!previousUrl || previousUrl === nextUrl) return;
+
+  const previousPath = getStorageObjectPath(previousUrl);
+  const nextPath = getStorageObjectPath(nextUrl);
+
+  if (!previousPath || previousPath === nextPath) return;
+
+  const supabase = createAdminSupabaseClient();
+  const { error } = await supabase.storage.from(AUDIO_BUCKET).remove([previousPath]);
+
+  if (error) {
+    console.warn(`Unable to delete replaced sound audio "${previousPath}":`, error.message);
+  }
+}
+
 export async function saveProduct(formData: FormData) {
   await requireAdmin();
   const supabase = createAdminSupabaseClient();
@@ -197,21 +229,36 @@ export async function saveSound(formData: FormData) {
   await requireAdmin();
   const supabase = createAdminSupabaseClient();
   const id = optionalString(formData.get('id'));
+  const nextAudioUrl = String(formData.get('audio_url') ?? '').trim();
+  const nextDuration = optionalString(formData.get('duration'));
+
+  if (!nextAudioUrl || !nextDuration) {
+    throw new Error('Audio va thoi luong bat buoc phai den tu file upload.');
+  }
+
+  const { data: currentSound } = id
+    ? await supabase
+        .from('sounds')
+        .select('audio_url')
+        .eq('id', id)
+        .maybeSingle()
+    : { data: null };
 
   const payload = {
     name: String(formData.get('name') ?? '').trim(),
     category: String(formData.get('category') ?? '').trim(),
     mood: optionalString(formData.get('mood')),
-    duration: optionalString(formData.get('duration')),
+    duration: nextDuration,
     icon: optionalString(formData.get('icon')),
     image_url: optionalString(formData.get('image_url')),
-    audio_url: String(formData.get('audio_url') ?? '').trim(),
+    audio_url: nextAudioUrl,
     sort_order: numberValue(formData.get('sort_order')),
     is_active: formData.get('is_active') === 'on',
   };
 
   if (id) {
     await supabase.from('sounds').update(payload).eq('id', id);
+    await deleteReplacedSoundAudio((currentSound as { audio_url?: string } | null)?.audio_url, nextAudioUrl);
   } else {
     await supabase.from('sounds').insert(payload);
   }

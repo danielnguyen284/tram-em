@@ -11,6 +11,9 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   output: 'standalone',
   transpilePackages: ['lucide-react'],
+  experimental: {
+    proxyClientMaxBodySize: '100mb',
+  },
   images: {
     minimumCacheTTL: 60,
     remotePatterns: [

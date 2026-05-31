@@ -104,16 +104,11 @@ export function resolveAudioUrl(url: string, name: string): string {
 }
 
 export async function getAdminSounds(limit?: number): Promise<Sound[]> {
-  const sounds = await safeSelect<Sound>('sounds', (supabase) => {
+  return safeSelect<Sound>('sounds', (supabase) => {
     let query = supabase.from('sounds').select('*').order('sort_order', { ascending: true });
     if (limit) query = query.limit(limit);
     return query;
   });
-
-  return sounds.map((s) => ({
-    ...s,
-    audio_url: resolveAudioUrl(s.audio_url, s.name),
-  }));
 }
 
 export async function getAdminPosts(limit?: number): Promise<Post[]> {

@@ -160,7 +160,9 @@ export default function MusicPlayer() {
           )}
           <div className={styles.trackText}>
             <p className={styles.title}>{primarySound.name}</p>
-            <p className={styles.subtitle}>{primarySound.duration ?? primarySound.category}</p>
+            <p className={styles.subtitle}>
+              {duration > 0 ? (duration <= 20 ? 'Vòng lặp' : formatTime(duration)) : (primarySound.duration ?? primarySound.category)}
+            </p>
           </div>
         </div>
 

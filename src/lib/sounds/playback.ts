@@ -16,7 +16,7 @@ const fallbackAudioByIcon: Record<string, string> = {
 export function resolveAudioUrl(sound: DbSound) {
   const fallbackUrl = fallbackAudioByIcon[sound.icon ?? 'music'] ?? fallbackAudioByIcon.music;
 
-  if (!sound.audio_url || sound.audio_url.includes('cdn.pixabay.com/download/audio')) {
+  if (!sound.audio_url) {
     return fallbackUrl;
   }
 
