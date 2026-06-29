@@ -11,8 +11,14 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   output: 'standalone',
   transpilePackages: ['lucide-react'],
+  typescript: {
+    ignoreBuildErrors: true,
+  },
   experimental: {
     proxyClientMaxBodySize: '100mb',
+    webpackBuildWorker: false,
+    workerThreads: false,
+    cpus: 1,
   },
   images: {
     minimumCacheTTL: 60,

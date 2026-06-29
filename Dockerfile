@@ -13,6 +13,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 RUN npm run build
 
 # 4. Production image, copy all the files and run next
