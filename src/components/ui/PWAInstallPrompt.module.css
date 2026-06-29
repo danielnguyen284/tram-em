@@ -1,0 +1,354 @@
+.banner {
+  position: fixed;
+  bottom: 80px; /* Tránh đè lên Music Player Bar hoặc Bottom Nav nếu có */
+  left: 50%;
+  transform: translateX(-50%) translateY(150%);
+  width: calc(100% - 32px);
+  max-width: 450px;
+  background: var(--color-bg-card, #ffffff);
+  border: 1px solid var(--color-border, #e8dff0);
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 30px rgba(139, 106, 173, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 9999;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
+  opacity: 0;
+  animation: showInstallBannerMobile 0.4s cubic-bezier(0.16, 1, 0.3, 1) 3s forwards;
+}
+
+[data-theme="dark"] .banner {
+  background: var(--color-bg-card-dark, #2a1f3d);
+  border-color: rgba(139, 106, 173, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Đối với màn hình Desktop / Tablet lớn hơn */
+@media (min-width: 768px) {
+  .banner {
+    bottom: 24px;
+    left: 24px;
+    transform: translateY(150%);
+    animation-name: showInstallBannerDesktop;
+  }
+
+}
+
+@keyframes showInstallBannerMobile {
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes showInstallBannerDesktop {
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.logoWrapper {
+  flex-shrink: 0;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-soft, #e8d5f5);
+  border-radius: 12px;
+  padding: 6px;
+}
+
+[data-theme="dark"] .logo {
+  background: rgba(139, 106, 173, 0.2);
+}
+
+.info {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary, #2d1b4e);
+  margin: 0 0 2px 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-theme="dark"] .title {
+  color: var(--color-text-primary-dark, #e8dff0);
+}
+
+.desc {
+  font-size: 12px;
+  color: var(--color-text-secondary, #5c4a72);
+  margin: 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+[data-theme="dark"] .desc {
+  color: var(--color-text-secondary-dark, #c4a8e0);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.installBtn {
+  background: var(--color-primary, #8b6aad);
+  color: #ffffff;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.installBtn:hover {
+  background: var(--color-primary-light, #c4a8e0);
+  transform: scale(1.02);
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted, #9b8aaf);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.closeBtn:hover {
+  background: var(--color-primary-bg, #f5eefa);
+  color: var(--color-primary, #8b6aad);
+}
+
+[data-theme="dark"] .closeBtn:hover {
+  background: rgba(139, 106, 173, 0.15);
+  color: var(--color-primary-dark, #a78bca);
+}
+
+/* Modal Overlay */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(26, 18, 37, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
+  display: flex;
+  align-items: flex-end; /* Trên mobile hiện ở dưới như bottom sheet */
+  justify-content: center;
+}
+
+@media (min-width: 768px) {
+  .overlay {
+    align-items: center;
+  }
+}
+
+/* Modal Content */
+.modal {
+  background: var(--color-bg-card, #ffffff);
+  width: 100%;
+  max-width: 480px;
+  border-radius: 24px 24px 0 0; /* Bo góc trên cho bottom sheet mobile */
+  padding: 24px;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.15);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+}
+
+[data-theme="dark"] .modal {
+  background: var(--color-bg-card-dark, #2a1f3d);
+}
+
+@media (min-width: 768px) {
+  .modal {
+    border-radius: 24px;
+    margin: 16px;
+    animation: fadeInScale 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary, #2d1b4e);
+  margin: 0;
+}
+
+[data-theme="dark"] .modalTitle {
+  color: var(--color-text-primary-dark, #e8dff0);
+}
+
+.modalCloseBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted, #9b8aaf);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.modalCloseBtn:hover {
+  background: var(--color-primary-bg, #f5eefa);
+  color: var(--color-primary, #8b6aad);
+}
+
+[data-theme="dark"] .modalCloseBtn:hover {
+  background: rgba(139, 106, 173, 0.15);
+  color: var(--color-primary-dark, #a78bca);
+}
+
+/* Các bước cài đặt iOS */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.step {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.stepNumber {
+  background: var(--color-primary-soft, #e8d5f5);
+  color: var(--color-primary, #8b6aad);
+  font-weight: 700;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .stepNumber {
+  background: rgba(139, 106, 173, 0.2);
+  color: var(--color-primary-dark, #a78bca);
+}
+
+.stepContent {
+  flex-grow: 1;
+  padding-top: 4px;
+}
+
+.stepText {
+  font-size: 14px;
+  color: var(--color-text-secondary, #5c4a72);
+  line-height: 1.5;
+  margin: 0;
+}
+
+[data-theme="dark"] .stepText {
+  color: var(--color-text-secondary-dark, #c4a8e0);
+}
+
+.stepText strong {
+  color: var(--color-text-primary, #2d1b4e);
+}
+
+[data-theme="dark"] .stepText strong {
+  color: var(--color-text-primary-dark, #e8dff0);
+}
+
+/* Các icon bổ trợ trong text */
+.inlineIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-bg, #f5eefa);
+  color: var(--color-primary, #8b6aad);
+  border-radius: 6px;
+  padding: 4px;
+  margin: 0 4px;
+  vertical-align: middle;
+}
+
+[data-theme="dark"] .inlineIcon {
+  background: rgba(139, 106, 173, 0.15);
+  color: var(--color-primary-dark, #a78bca);
+}
+
+.okBtn {
+  width: 100%;
+  background: var(--color-primary, #8b6aad);
+  color: #ffffff;
+  border: none;
+  border-radius: 24px;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.okBtn:hover {
+  background: var(--color-primary-light, #c4a8e0);
+}

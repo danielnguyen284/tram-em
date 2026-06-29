@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Nunito } from "next/font/google";
 import "./globals.css";
 import WelcomeScreens from "@/components/ui/WelcomeScreens";
+import PWAInstallPrompt from "@/components/ui/PWAInstallPrompt";
 
 const nunito = Nunito({
   subsets: ["latin", "vietnamese"],
@@ -45,6 +46,7 @@ export default function RootLayout({
       <body className={nunito.variable}>
         <WelcomeScreens />
         {children}
+        <PWAInstallPrompt />
       </body>
     </html>
   );

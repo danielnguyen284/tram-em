@@ -34,18 +34,7 @@ export default function HomeClient({ featuredSounds }: Props) {
   return (
     <div className={styles.container}>
       {/* Banner Section */}
-      <div className={styles.hero}>
-        <div className={styles.heroContent}>
-          <p className={styles.greeting}>Chào mừng bạn đến với</p>
-          <h2 className={`text-hero ${styles.brand}`}>TRẠM ÊM</h2>
-          <p className={styles.heroSubtitle}>
-            Nơi cảm xúc được lắng nghe, thấu hiểu<br />và chữa lành mỗi ngày 💜
-          </p>
-          <div className={styles.heroActions}>
-
-          </div>
-        </div>
-      </div>
+      <div className={styles.hero} role="img" aria-label="Banner Trạm Êm" />
 
       {/* Features Section */}
       <div className={styles.featuresSectionWrapper}>
