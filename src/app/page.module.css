@@ -237,6 +237,43 @@
 }
 
 /* --- Responsive --- */
+@media (min-width: 1025px) and (max-width: 1920px) {
+  .hero {
+    aspect-ratio: 2048 / 760;
+    background-image: none;
+  }
+
+  [data-theme='dark'] .hero {
+    background-image: none;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url('/images/hero-bg.jpg');
+    background-size: auto 100%;
+    background-position: right top;
+    background-repeat: no-repeat;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.04) 18%, rgba(0, 0, 0, 0.38) 32%, rgba(0, 0, 0, 0.78) 45%, #000 58%);
+    mask-image: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.04) 18%, rgba(0, 0, 0, 0.38) 32%, rgba(0, 0, 0, 0.78) 45%, #000 58%);
+    z-index: 0;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, rgba(253, 248, 247, 0.98) 0%, rgba(253, 248, 247, 0.92) 30%, rgba(253, 248, 247, 0.64) 46%, rgba(253, 248, 247, 0.24) 63%, rgba(253, 248, 247, 0) 78%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  [data-theme='dark'] .hero::after {
+    background: linear-gradient(90deg, rgba(19, 11, 30, 0.96) 0%, rgba(19, 11, 30, 0.88) 30%, rgba(19, 11, 30, 0.64) 46%, rgba(19, 11, 30, 0.26) 63%, rgba(19, 11, 30, 0) 78%);
+  }
+}
+
 @media (max-width: 1024px) {
   .featuresGrid {
     grid-template-columns: repeat(3, 1fr);
