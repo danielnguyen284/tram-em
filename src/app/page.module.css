@@ -9,15 +9,19 @@
 
 /* --- Hero Section --- */
 .hero {
-  display: block;
+  display: flex;
+  align-items: center;
   aspect-ratio: 1717 / 916;
   margin-top: calc(var(--space-xl) * -1);
   margin-left: calc(var(--space-xl) * -1);
   margin-right: calc(var(--space-xl) * -1);
+  padding: clamp(48px, 5vw, 80px) clamp(48px, 7vw, 112px);
   background-color: var(--color-bg-page);
-  background-image: url('/images/hero-bg.jpg');
-  background-size: 100% auto;
-  background-position: center top;
+  background-image:
+    linear-gradient(90deg, var(--color-bg-page) 0%, rgba(253, 248, 247, 0.88) 22%, rgba(253, 248, 247, 0.44) 52%, rgba(253, 248, 247, 0) 76%),
+    url('/images/hero-bg.jpg');
+  background-size: cover, 100% auto;
+  background-position: center, center top;
   background-repeat: no-repeat;
   border-radius: 0;
   box-shadow: none;
@@ -27,11 +31,40 @@
 }
 
 [data-theme='dark'] .hero {
-  background-image: url('/images/hero-bg.jpg');
+  background-image:
+    linear-gradient(90deg, var(--color-bg-page) 0%, rgba(19, 11, 30, 0.9) 22%, rgba(19, 11, 30, 0.54) 52%, rgba(19, 11, 30, 0) 76%),
+    url('/images/hero-bg.jpg');
 }
 
 .hero::before {
   content: none;
+}
+
+.heroContent {
+  max-width: 500px;
+  position: relative;
+  z-index: 1;
+}
+
+.greeting {
+  font-size: var(--text-h2);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
+}
+
+.brand {
+  color: var(--color-primary);
+  margin-bottom: var(--space-sm);
+  display: block;
+}
+
+.heroSubtitle {
+  color: var(--color-text-secondary);
+  font-size: var(--text-h3);
+  font-weight: 500;
+  max-width: 480px;
+  line-height: 1.6;
 }
 
 /* --- Features Section --- */
@@ -215,14 +248,23 @@
 
 @media (max-width: 768px) {
   .hero {
+    display: block;
     aspect-ratio: 1717 / 916;
     margin-top: calc(var(--space-md) * -1);
     margin-left: calc(var(--space-md) * -1);
     margin-right: calc(var(--space-md) * -1);
+    padding: 0;
+    background-image: url('/images/hero-bg.jpg');
     border-radius: var(--radius-md);
     min-height: 0;
     background-position: center top;
     background-size: 100% auto;
+  }
+  [data-theme='dark'] .hero {
+    background-image: url('/images/hero-bg.jpg');
+  }
+  .heroContent {
+    display: none;
   }
   .featuresGrid {
     grid-template-columns: repeat(2, 1fr);

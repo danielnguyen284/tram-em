@@ -14,10 +14,14 @@
   flex: 1;
   min-width: 0;
   margin-left: 240px;
-  padding: var(--space-xl) var(--space-xl) 100px; /* Thêm padding bottom để tránh player bar */
+  padding: var(--space-xl) var(--space-xl) 32px; /* Mặc định padding bottom là 32px khi không có player */
   min-height: calc(100vh - 64px);
   background-color: var(--color-bg-page);
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, padding-bottom 0.3s ease;
+}
+
+.content.hasPlayer {
+  padding-bottom: 100px; /* Thêm padding bottom lớn khi có player bar */
 }
 
 .aiContent {
@@ -32,8 +36,13 @@
 
   .content {
     margin-left: 0;
-    padding: var(--space-md) var(--space-md) 108px;
+    padding: var(--space-md) var(--space-md) 16px;
     min-height: calc(100vh - 58px);
+    transition: padding-bottom 0.3s ease;
+  }
+
+  .content.hasPlayer {
+    padding-bottom: 108px;
   }
 
   .aiContent {
